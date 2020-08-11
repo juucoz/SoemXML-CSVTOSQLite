@@ -15,7 +15,7 @@ dotnet build SoemXMLToSQLite.csproj
 
 When the build is complete, we can run the exe file by
 
-SoemXMLToSQLite -i (inputPath) -m (sourceFileMask) -d (dbFilePath)
+SoemXMLToSQLite -i inputPath -m sourceFileMask -d dbFilePath
 
 inputPath - This is the path that the files will be searched.
 sourceFileMask - This is filter that will be used to determine which 
