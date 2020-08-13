@@ -10,28 +10,30 @@ namespace SoemXmlToSQLite
     class CSVParser : IParser
     {
         private string[] _headers;
-        private TextFileParseOutput _defaultResult;
+        public TextFileParseOutput _defaultResult;
 
         [DefaultValue(",")]
         public string SourceSeparator { get; set; } = ",";
 
         public TextFileParseOutput Parse(Stream input)
         {
-            TextFileParseOutput _defaultResult = new TextFileParseOutput();
+            _defaultResult = new TextFileParseOutput();
+            _defaultResult.headers = new List<string>();
+            _defaultResult.data = new List<Dictionary<string, string>>();
 
             StreamReader reader = new StreamReader(input);
             if (reader.EndOfStream)
                 throw new ApplicationException("File is empty!");
 
             string unTrimmedHeaders = reader.ReadLine();
-            ReadHeaders(unTrimmedHeaders);
+            ReadHeaders(unTrimmedHeaders,_defaultResult);
 
             
 
             while (!reader.EndOfStream)
             {
                 string line = reader.ReadLine();
-                ReadLine(line);
+                ReadLine(line,_defaultResult);
             }
 
             return _defaultResult;
@@ -41,7 +43,7 @@ namespace SoemXmlToSQLite
         ///
         /// </summary>
         /// <param name="headerLine"></param>
-        protected void ReadHeaders(string headerLine)
+        protected void ReadHeaders(string headerLine,TextFileParseOutput _defaultResult)
         {
             string targetLine = headerLine;
             char[] separators = SourceSeparator.ToCharArray();
@@ -49,13 +51,16 @@ namespace SoemXmlToSQLite
             _headers = targetLine.Split(separators);
 
             // create parse item
-            _defaultResult.headers.AddRange(_headers);
+            
+               
+                _defaultResult.headers.AddRange(_headers);
+            
         }
         /// <summary>
         ///
         /// </summary>
         /// <param name="line"></param>
-        protected void ReadLine(string line)
+        protected void ReadLine(string line,TextFileParseOutput _defaultResult)
         {           
             string target;
 
@@ -69,7 +74,13 @@ namespace SoemXmlToSQLite
             if (dataRow.Length == _headers.Length)
             {
                 Dictionary<string, string> dict = new Dictionary<string, string>();
-               // _defaultResult.data.AddRange(_headers.ToList<string>, dataRow.ToList<string>);
+                foreach (var dh in dataRow.Zip(_defaultResult.headers, Tuple.Create))
+                {
+                    dict.Add(dh.Item2, dh.Item1);
+                }
+                // _defaultResult.data.AddRange(_headers.ToList<string>, dataRow.ToList<string>);
+                
+                _defaultResult.data.Add(dict);
             }
             else
             {

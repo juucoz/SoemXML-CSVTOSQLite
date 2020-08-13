@@ -15,7 +15,7 @@ namespace SoemXmlToSQLite
     {
         static void Main(string[] args)
         {         
-            var opts = new Options();
+           /* var opts = new Options();
             var result = CommandLine.Parser.Default.ParseArguments<Options>(args)
             .WithParsed<Options>(parsed => opts = parsed)
             .WithNotParsed<Options>(e =>
@@ -30,13 +30,16 @@ namespace SoemXmlToSQLite
             string inputPath = opts.InputPath;
             string sourceFileMask = opts.SourceFileMask;
             string dbFilePath = opts.DbFilePath;
-
-            if (result.Tag == ParserResultType.NotParsed)
+           */
+            string inputPath = @"C:\Users\ata.akcay\Desktop\inputFile";
+            string sourceFileMask = "*.csv";
+            string dbFilePath = "soem4.sqlite";
+           /* if (result.Tag == ParserResultType.NotParsed)
             {
                 Console.WriteLine("Usage: SoemXmlToSQLite -i <inputPath> -m *.xml -d <target.sqlite>");
                 return;
             }
-           
+           */            
             SQLiteConnectionStringBuilder dbConnectionStringBuilder = new SQLiteConnectionStringBuilder
             {
                 DataSource = dbFilePath,  
@@ -90,11 +93,17 @@ namespace SoemXmlToSQLite
                 }
                     Console.WriteLine("Enter the directory name that you want to save to SQLite, enter ALL to save all files in the directory.");
                     string selectedFolder = Console.ReadLine();
+                using (FileStream csvFile = File.OpenRead(@"C:\Users\ata.akcay\Desktop\sn-05-001308_history_2020-05-07_00h04m11sZ_Echo-ICMP_all_300.csv"))
+                {
+                    var parser = ParserFactory.CreateParser(@"C:\Users\ata.akcay\Desktop\sn-05-001308_history_2020-05-07_00h04m11sZ_Echo-ICMP_all_300.csv");
+                    var ParsedFile = parser.Parse(csvFile);
+                }
 
                 if (selectedFolder.Equals("ALL"))
                 {
-                    foreach (string filePath in Directory.EnumerateFiles(inputPath, sourceFileMask,SearchOption.AllDirectories))
+                    foreach (string filePath in Directory.EnumerateFiles(inputPath, sourceFileMask, SearchOption.AllDirectories))
                     {
+
                         string fileName = Path.GetFileName(filePath);
                         Console.WriteLine(fileName);
                         // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
@@ -114,23 +123,49 @@ namespace SoemXmlToSQLite
                         }
                     }
                 }
+                /*  else if (Directory.Exists(inputPath + $"\\{selectedFolder}"))
+                  {
+                      foreach (string filePath in Directory.EnumerateFiles(inputPath + $"\\{selectedFolder}", sourceFileMask, SearchOption.AllDirectories))
+                      {
+                          string fileName = Path.GetFileName(filePath);
+                          Console.WriteLine(fileName);
+                          // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
+                          string ne = Regex.Match(fileName, @".+?(?=_)").Value;
+                          string @class = Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
+                          string timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
+                          using (FileStream stream = File.OpenRead(filePath))
+                          {
+                              SoemXmlToDbConverter.Convert(
+                                  stream,
+                                  ne,
+                                  @class,
+                                  timestamp,
+                                  dbConnection,
+                                  columnIndices,
+                                  dbInsertCommandCache);
+                          }
+                      }
+                  } */
+
                 else if (Directory.Exists(inputPath + $"\\{selectedFolder}"))
                 {
                     foreach (string filePath in Directory.EnumerateFiles(inputPath + $"\\{selectedFolder}", sourceFileMask, SearchOption.AllDirectories))
                     {
+                        var parser = ParserFactory.CreateParser(filePath);
                         string fileName = Path.GetFileName(filePath);
                         Console.WriteLine(fileName);
                         // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
                         string ne = Regex.Match(fileName, @".+?(?=_)").Value;
                         string @class = Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
-                        string timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
+
                         using (FileStream stream = File.OpenRead(filePath))
                         {
-                            SoemXmlToDbConverter.Convert(
+                            var ParsedFile = parser.Parse(stream);
+                            SoemXmlToDbConverter.ConvertTest(
+                                ParsedFile,
                                 stream,
                                 ne,
                                 @class,
-                                timestamp,
                                 dbConnection,
                                 columnIndices,
                                 dbInsertCommandCache);
@@ -142,6 +177,7 @@ namespace SoemXmlToSQLite
                     Console.WriteLine("This folder does not exist in the input file.");
                     return;
                 }
+              
             }
         }
     }

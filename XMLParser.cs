@@ -9,7 +9,8 @@ namespace SoemXmlToSQLite
     {
         public TextFileParseOutput Parse(Stream input)
         {
-            
+            TextFileParseOutput output = new TextFileParseOutput();
+            return output;
         }
     }
 }

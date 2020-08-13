@@ -21,8 +21,9 @@ namespace SoemXmlToSQLite
             Dictionary<string, SQLiteCommand> dbInsertCommandCache)
         {
             using (SQLiteTransaction dbTransaction = dbConnection.BeginTransaction())
-            {
-                XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
+            {      
+                
+                /* XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
                 {
                     DtdProcessing = DtdProcessing.Ignore,
                     IgnoreComments = true,
@@ -136,9 +137,16 @@ namespace SoemXmlToSQLite
                         }
                         xmlReader.Skip();
                     }
+                
                 }
+                */
                 dbTransaction.Commit();
             }
+        }
+
+        internal static void ConvertTest(TextFileParseOutput parsedFile, FileStream stream, string ne, string @class, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
+        {
+            
         }
     }
 }
