@@ -5,7 +5,7 @@ namespace SoemXmlToSQLite
 {
     internal interface IParser
     {
-        public TextFileParseOutput Parse(Stream input);
+        public TextFileParseOutput Parse(FileStream input);
         
     }
 }

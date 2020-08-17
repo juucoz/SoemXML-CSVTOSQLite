@@ -1,8 +1,11 @@
-﻿using System;
+﻿using CommandLine;
+using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -145,7 +148,27 @@ namespace SoemXmlToSQLite
         }
 
         internal static void ConvertTest(TextFileParseOutput parsedFile, FileStream stream, string ne, string @class, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
+     
         {
+            
+            using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
+            {
+                    string dbCommandText = $"CREATE TABLE [{ne}] ({string.Join(",", parsedFile.headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
+                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText,dbConnection))
+                    {
+                        dbCommand.ExecuteNonQuery();
+                    }
+                foreach (var datum in parsedFile.data)
+                {
+                    string dbInsertText = $"INSERT INTO [{ne}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
+                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
+                    {
+                        dbCommand.ExecuteNonQuery();
+                    }
+                }
+              
+                dbTransaction.Commit();
+            }
             
         }
     }

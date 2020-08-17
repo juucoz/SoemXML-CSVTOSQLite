@@ -12,7 +12,44 @@ using System.Text;
         {
             if (Path.GetExtension(fileName) == ".csv")
             {
-                return new CSVParser();
+                CSVParser parser = new CSVParser();
+
+                if (fileName.Contains("PM"))
+                {
+                    parser.HeaderLine = 2;
+                    parser.SkipEscape = false;
+                }
+                else if (fileName.EndsWith("all_300"))
+                {
+                    parser.HeaderLine = 1;
+                    parser.SkipEscape = false;
+                }
+                else if (fileName.Contains("Report") || fileName.Contains("Information"))
+                {
+                    parser.HeaderLine = 10;
+                    parser.SkipEscape = true;
+                }
+                else
+                {
+                    parser.HeaderLine = 1;
+                    parser.SkipEscape = true;
+
+                }
+
+                
+                
+               /* Console.WriteLine($"Which line is the header in {fileName}?");
+                string HeaderLine = Console.ReadLine();
+                int number;
+                if(!Int32.TryParse(HeaderLine, out number))
+                {
+                    Console.WriteLine("Enter a valid number.");
+                    return CreateParser(fileName);
+                }
+                parser.HeaderLine = number;
+               */
+
+                return parser;
             }
             return null;
         }

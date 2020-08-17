@@ -14,23 +14,23 @@ namespace SoemXmlToSQLite
     class Program
     {
         static void Main(string[] args)
-        {         
-           /* var opts = new Options();
-            var result = CommandLine.Parser.Default.ParseArguments<Options>(args)
-            .WithParsed<Options>(parsed => opts = parsed)
-            .WithNotParsed<Options>(e =>
-            {
-                var exitCode = -2;
-                Console.WriteLine("errors {0}", e.Count());
-                if (e.Any(x => x is HelpRequestedError || x is VersionRequestedError))
-                    exitCode = -1;
-                Console.WriteLine("Exit code {0}", exitCode);
-                
-            });
-            string inputPath = opts.InputPath;
-            string sourceFileMask = opts.SourceFileMask;
-            string dbFilePath = opts.DbFilePath;
-           */
+        {           
+            /* var opts = new Options();
+             var result = CommandLine.Parser.Default.ParseArguments<Options>(args)
+             .WithParsed<Options>(parsed => opts = parsed)
+             .WithNotParsed<Options>(e =>
+             {
+                 var exitCode = -2;
+                 Console.WriteLine("errors {0}", e.Count());
+                 if (e.Any(x => x is HelpRequestedError || x is VersionRequestedError))
+                     exitCode = -1;
+                 Console.WriteLine("Exit code {0}", exitCode);
+
+             });
+             string inputPath = opts.InputPath;
+             string sourceFileMask = opts.SourceFileMask;
+             string dbFilePath = opts.DbFilePath;
+            */
             string inputPath = @"C:\Users\ata.akcay\Desktop\inputFile";
             string sourceFileMask = "*.csv";
             string dbFilePath = "soem4.sqlite";
@@ -93,11 +93,6 @@ namespace SoemXmlToSQLite
                 }
                     Console.WriteLine("Enter the directory name that you want to save to SQLite, enter ALL to save all files in the directory.");
                     string selectedFolder = Console.ReadLine();
-                using (FileStream csvFile = File.OpenRead(@"C:\Users\ata.akcay\Desktop\sn-05-001308_history_2020-05-07_00h04m11sZ_Echo-ICMP_all_300.csv"))
-                {
-                    var parser = ParserFactory.CreateParser(@"C:\Users\ata.akcay\Desktop\sn-05-001308_history_2020-05-07_00h04m11sZ_Echo-ICMP_all_300.csv");
-                    var ParsedFile = parser.Parse(csvFile);
-                }
 
                 if (selectedFolder.Equals("ALL"))
                 {
@@ -152,6 +147,7 @@ namespace SoemXmlToSQLite
                     foreach (string filePath in Directory.EnumerateFiles(inputPath + $"\\{selectedFolder}", sourceFileMask, SearchOption.AllDirectories))
                     {
                         var parser = ParserFactory.CreateParser(filePath);
+                        
                         string fileName = Path.GetFileName(filePath);
                         Console.WriteLine(fileName);
                         // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace SoemXmlToSQLite
 {
@@ -14,29 +15,56 @@ namespace SoemXmlToSQLite
 
         [DefaultValue(",")]
         public string SourceSeparator { get; set; } = ",";
+        
+        [DefaultValue(1)]
+        public int HeaderLine { get; set; }
 
-        public TextFileParseOutput Parse(Stream input)
+        [DefaultValue(false)]
+        public bool SkipEscape { get; set; }
+
+        public TextFileParseOutput Parse(FileStream input)
         {
-            _defaultResult = new TextFileParseOutput();
-            _defaultResult.headers = new List<string>();
-            _defaultResult.data = new List<Dictionary<string, string>>();
-
             StreamReader reader = new StreamReader(input);
-            if (reader.EndOfStream)
-                throw new ApplicationException("File is empty!");
 
-            string unTrimmedHeaders = reader.ReadLine();
-            ReadHeaders(unTrimmedHeaders,_defaultResult);
+            Console.WriteLine(input.Position);
+            _defaultResult = new TextFileParseOutput
+            {
+                headers = new List<string>(),
+                data = new List<Dictionary<string, string>>()
+            };
+            
+            string unTrimmedHeaders = ReadHeaders(input);
+            ReadHeaders(unTrimmedHeaders, _defaultResult);
+            input.Position = 0;
+
+            for (var i = 1; i <= HeaderLine; i++)
+            {
+                reader.ReadLine();
+            }
 
             
-
             while (!reader.EndOfStream)
             {
                 string line = reader.ReadLine();
                 ReadLine(line,_defaultResult);
             }
+            Console.WriteLine(input.Position);
 
             return _defaultResult;
+        }
+
+        protected string ReadHeaders(FileStream inp)
+        {
+            StreamReader rd = new StreamReader(inp, leaveOpen:true);
+            
+                for (var i = 1; i < HeaderLine; i++)
+                {
+                    rd.ReadLine();
+                Console.WriteLine(inp.Position); 
+            }
+                var unTrimmedHeaderssss = rd.ReadLine();
+            return unTrimmedHeaderssss;
+            
         }
 
         /// <summary>
@@ -46,9 +74,16 @@ namespace SoemXmlToSQLite
         protected void ReadHeaders(string headerLine,TextFileParseOutput _defaultResult)
         {
             string targetLine = headerLine;
+            if (SkipEscape)
+            {
+                targetLine = targetLine.Replace("\"", "");
+            }
+           
+
             char[] separators = SourceSeparator.ToCharArray();
             
             _headers = targetLine.Split(separators);
+
 
             // create parse item
             
@@ -64,11 +99,17 @@ namespace SoemXmlToSQLite
         {           
             string target;
 
-            target = line.Trim();
-            
+            target = line.Trim().Replace("'","''");
+            if (SkipEscape)
+            {
+                target = line.Replace("\"", "");
+            }
+
             string[] dataRow;
             char[] separators = SourceSeparator.ToCharArray();
             dataRow = target.Split(separators);
+            
+            
             
 
             if (dataRow.Length == _headers.Length)
@@ -84,8 +125,6 @@ namespace SoemXmlToSQLite
             }
             else
             {
-               
-                    throw new ApplicationException($"Mismatch on field count between headers and data line: {Environment.NewLine}{line}");
                 
             }
         }
