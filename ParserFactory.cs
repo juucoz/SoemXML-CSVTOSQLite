@@ -17,9 +17,9 @@ using System.Text;
                 if (fileName.Contains("PM"))
                 {
                     parser.HeaderLine = 2;
-                    parser.SkipEscape = false;
+                    parser.SkipEscape = true;
                 }
-                else if (fileName.EndsWith("all_300"))
+                else if (fileName.EndsWith("all"))
                 {
                     parser.HeaderLine = 1;
                     parser.SkipEscape = false;

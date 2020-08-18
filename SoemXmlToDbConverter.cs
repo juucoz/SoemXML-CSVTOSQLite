@@ -147,20 +147,20 @@ namespace SoemXmlToSQLite
             }
         }
 
-        internal static void ConvertTest(TextFileParseOutput parsedFile, FileStream stream, string ne, string @class, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
+        internal static void ConvertTest(TextFileParseOutput parsedFile, FileStream stream, string ne, string fileNameWithoutExt, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
      
         {
             
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
-                    string dbCommandText = $"CREATE TABLE [{ne}] ({string.Join(",", parsedFile.headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
+                    string dbCommandText = $"CREATE TABLE [{fileNameWithoutExt}] ({string.Join(",", parsedFile.headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
                     using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText,dbConnection))
                     {
                         dbCommand.ExecuteNonQuery();
                     }
                 foreach (var datum in parsedFile.data)
                 {
-                    string dbInsertText = $"INSERT INTO [{ne}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
+                    string dbInsertText = $"INSERT INTO [{fileNameWithoutExt}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
                     using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
                     {
                         dbCommand.ExecuteNonQuery();

@@ -12,6 +12,7 @@ namespace SoemXmlToSQLite
     {
         private string[] _headers;
         public TextFileParseOutput _defaultResult;
+        int skippedLineCounter = 0;
 
         [DefaultValue(",")]
         public string SourceSeparator { get; set; } = ",";
@@ -96,21 +97,20 @@ namespace SoemXmlToSQLite
         /// </summary>
         /// <param name="line"></param>
         protected void ReadLine(string line,TextFileParseOutput _defaultResult)
-        {           
+        {
+            string[] dataRow;
+            char[] separators = SourceSeparator.ToCharArray();
             string target;
 
             target = line.Trim().Replace("'","''");
-            if (SkipEscape)
+            if (SkipEscape)          
             {
-                target = line.Replace("\"", "");
+                dataRow = Regex.Split(target, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
             }
-
-            string[] dataRow;
-            char[] separators = SourceSeparator.ToCharArray();
-            dataRow = target.Split(separators);
-            
-            
-            
+            else
+            {
+                dataRow = target.Split(separators);
+            }
 
             if (dataRow.Length == _headers.Length)
             {
@@ -119,14 +119,17 @@ namespace SoemXmlToSQLite
                 {
                     dict.Add(dh.Item2, dh.Item1);
                 }
-                // _defaultResult.data.AddRange(_headers.ToList<string>, dataRow.ToList<string>);
-                
+
                 _defaultResult.data.Add(dict);
             }
             else
             {
-                
+                Console.WriteLine($"Problem in row {_defaultResult.data.Count + HeaderLine + 1 + skippedLineCounter } ");
+                skippedLineCounter++;
             }
+
+
+
         }
     }
 }

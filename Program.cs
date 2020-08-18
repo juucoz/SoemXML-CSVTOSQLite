@@ -50,10 +50,10 @@ namespace SoemXmlToSQLite
             {
                 dbConnection.Open();
 
-                Dictionary<string, Dictionary<string, int>> columnIndices = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
-                Dictionary<string, SQLiteCommand> dbInsertCommandCache = new Dictionary<string, SQLiteCommand>(StringComparer.OrdinalIgnoreCase);
+                var columnIndices = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+                var dbInsertCommandCache = new Dictionary<string, SQLiteCommand>(StringComparer.OrdinalIgnoreCase);
 
-                HashSet<string> existingTableNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var existingTableNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 using (SQLiteCommand dbCommand = new SQLiteCommand("SELECT name FROM sqlite_master WHERE type='table'", dbConnection))
                 {
                     using (SQLiteDataReader dbReader = dbCommand.ExecuteReader())
@@ -67,7 +67,7 @@ namespace SoemXmlToSQLite
                 }
                 foreach (string tableName in existingTableNames)
                 {
-                    List<string> columnNames = new List<string>();
+                    var columnNames = new List<string>();
                     using (SQLiteCommand dbCommand = new SQLiteCommand($"pragma table_info([{tableName}])", dbConnection))
                     {
                         using (SQLiteDataReader dbReader = dbCommand.ExecuteReader())
@@ -151,8 +151,9 @@ namespace SoemXmlToSQLite
                         string fileName = Path.GetFileName(filePath);
                         Console.WriteLine(fileName);
                         // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
+                        string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
                         string ne = Regex.Match(fileName, @".+?(?=_)").Value;
-                        string @class = Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
+                        
 
                         using (FileStream stream = File.OpenRead(filePath))
                         {
@@ -161,7 +162,7 @@ namespace SoemXmlToSQLite
                                 ParsedFile,
                                 stream,
                                 ne,
-                                @class,
+                                fileNameWithoutExt,
                                 dbConnection,
                                 columnIndices,
                                 dbInsertCommandCache);
