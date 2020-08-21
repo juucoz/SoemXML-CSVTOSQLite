@@ -16,7 +16,7 @@ namespace SoemXmlToSQLite
 
         [DefaultValue(",")]
         public string SourceSeparator { get; set; } = ",";
-        
+
         [DefaultValue(1)]
         public int HeaderLine { get; set; }
 
@@ -33,7 +33,7 @@ namespace SoemXmlToSQLite
                 headers = new List<string>(),
                 data = new List<Dictionary<string, string>>()
             };
-            
+
             string unTrimmedHeaders = ReadHeaders(input);
             ReadHeaders(unTrimmedHeaders, _defaultResult);
             input.Position = 0;
@@ -43,11 +43,11 @@ namespace SoemXmlToSQLite
                 reader.ReadLine();
             }
 
-            
+
             while (!reader.EndOfStream)
             {
                 string line = reader.ReadLine();
-                ReadLine(line,_defaultResult);
+                ReadLine(line, _defaultResult);
             }
             Console.WriteLine(input.Position);
 
@@ -56,56 +56,62 @@ namespace SoemXmlToSQLite
 
         protected string ReadHeaders(FileStream inp)
         {
-            StreamReader rd = new StreamReader(inp, leaveOpen:true);
-            
-                for (var i = 1; i < HeaderLine; i++)
-                {
-                    rd.ReadLine();
-                Console.WriteLine(inp.Position); 
+            StreamReader rd = new StreamReader(inp, leaveOpen: true);
+
+            for (var i = 1; i < HeaderLine; i++)
+            {
+                rd.ReadLine();
             }
-                var unTrimmedHeaderssss = rd.ReadLine();
+            var unTrimmedHeaderssss = rd.ReadLine();
             return unTrimmedHeaderssss;
-            
+
         }
 
         /// <summary>
         ///
         /// </summary>
         /// <param name="headerLine"></param>
-        protected void ReadHeaders(string headerLine,TextFileParseOutput _defaultResult)
+        protected void ReadHeaders(string headerLine, TextFileParseOutput _defaultResult)
         {
             string targetLine = headerLine;
             if (SkipEscape)
             {
                 targetLine = targetLine.Replace("\"", "");
             }
-           
+
 
             char[] separators = SourceSeparator.ToCharArray();
-            
+
             _headers = targetLine.Split(separators);
 
 
             // create parse item
-            
-               
-                _defaultResult.headers.AddRange(_headers);
-            
+
+
+            _defaultResult.headers.AddRange(_headers);
+
         }
         /// <summary>
         ///
         /// </summary>
         /// <param name="line"></param>
-        protected void ReadLine(string line,TextFileParseOutput _defaultResult)
+        protected void ReadLine(string line, TextFileParseOutput _defaultResult)
         {
             string[] dataRow;
             char[] separators = SourceSeparator.ToCharArray();
             string target;
 
-            target = line.Trim().Replace("'","''");
-            if (SkipEscape)          
+            target = line.Trim().Replace("'", "''");
+            if (SkipEscape)
             {
                 dataRow = Regex.Split(target, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+                for(var i = 0; i < dataRow.Length; i++)
+                {
+                    if(dataRow[i].StartsWith("\""))
+                    {
+                        dataRow[i] = dataRow[i].Substring(1, dataRow[i].Length > 2 ? dataRow[i].Length - 2 : dataRow[i].Length - 1);
+                    }
+                }
             }
             else
             {

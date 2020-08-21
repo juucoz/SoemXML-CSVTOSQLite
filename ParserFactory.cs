@@ -19,7 +19,7 @@ using System.Text;
                     parser.HeaderLine = 2;
                     parser.SkipEscape = true;
                 }
-                else if (fileName.EndsWith("all"))
+                else if (fileName.Contains("all_300"))
                 {
                     parser.HeaderLine = 1;
                     parser.SkipEscape = false;
