@@ -23,7 +23,7 @@ namespace SoemXmlToSQLite
             opts.InputPath = inputPath;
             opts.SourceFileMask = sourceFileMask;
             opts.DbFilePath = dbFilePath;
-
+            
            // string inputPath = opts.InputPath;
            // string sourceFileMask = opts.SourceFileMask;
            // string dbFilePath = opts.DbFilePath;
@@ -36,7 +36,7 @@ namespace SoemXmlToSQLite
             {
                 dbConnection.Open();
                 var selectedFolder = FileValues.GetFileValue(inputPath);
-                FileValues.CallConverter(selectedFolder, dbvalues, opts, dbConnection);
+                FileValues.CallConverter(selectedFolder, dbvalues, opts, dbConnection,dbFilePath);
             }
             /*  var dbConnectionStringBuilder = new SQLiteConnectionStringBuilder
               {

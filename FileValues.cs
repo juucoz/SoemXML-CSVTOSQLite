@@ -22,13 +22,14 @@ namespace SoemXmlToSQLite
             return selectedFolder;
         }
 
-        public static void CallConverter(string selectedFolder, DBValues values, Options options, SQLiteConnection dbConnection)
+        public static void CallConverter(string selectedFolder, DBValues values, Options options, SQLiteConnection dbConnection,string dbFilePath)
         {
             if (selectedFolder.Equals("ALL"))
             {
                 foreach (string filePath in Directory.EnumerateFiles(options.InputPath, options.SourceFileMask, SearchOption.AllDirectories))
                 {
 
+                    values = new DBValues(dbFilePath);
                     string fileName = Path.GetFileName(filePath);
                     if (fileName.Contains(".xml"))
                     {
@@ -55,6 +56,7 @@ namespace SoemXmlToSQLite
             {
                 foreach (string filePath in Directory.EnumerateFiles(options.InputPath + $"\\{selectedFolder}", options.SourceFileMask, SearchOption.AllDirectories))
                 {
+                    values = new DBValues(dbFilePath);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
                     if (parser is CSVParser)
@@ -63,7 +65,8 @@ namespace SoemXmlToSQLite
                         // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
                         string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
                         string ne = Regex.Match(fileName, @".+?(?=_)").Value;
-                        string timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
+                        string @class = Regex.Matches(fileName, @"(?<=_)(.*?)(?=_)")[3].Value;
+                        //string timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
 
 
                         using (FileStream stream = File.OpenRead(filePath))
@@ -72,6 +75,7 @@ namespace SoemXmlToSQLite
                                 parser,
                                 stream,
                                 ne,
+                                @class,
                                 fileNameWithoutExt,
                                 dbConnection,
                                 values.ColumnIndices,

@@ -147,16 +147,16 @@ namespace SoemXmlToSQLite
             }
         }
 
-        internal static void Convert(IParser parser, FileStream stream, string ne, string fileNameWithoutExt, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
+        internal static void Convert(IParser parser, FileStream stream, string ne, string @class, string fileNameWithoutExt, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
 
         {
             var ParsedFile = parser.Parse(stream);
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
                 Dictionary<string, int> currentObjectColumnIndices;
-                if (!columnIndices.TryGetValue(fileNameWithoutExt,out currentObjectColumnIndices))
+                if (!columnIndices.TryGetValue(ne,out currentObjectColumnIndices))
                 {
-                    string dbCommandText = $"CREATE TABLE [{fileNameWithoutExt}] ({string.Join(",", ParsedFile.headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
+                    string dbCommandText = $"CREATE TABLE [{ne + " " + @class}] ({string.Join(",", ParsedFile.headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
                     using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
                     {
                         dbCommand.ExecuteNonQuery();
@@ -164,7 +164,7 @@ namespace SoemXmlToSQLite
                 }
                 foreach (var datum in ParsedFile.data)
                 {
-                    string dbInsertText = $"INSERT INTO [{fileNameWithoutExt}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
+                    string dbInsertText = $"INSERT INTO [{ne+ " " +@class}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
                     using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
                     {
                         dbCommand.ExecuteNonQuery();

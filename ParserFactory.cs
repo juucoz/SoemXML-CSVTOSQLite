@@ -3,14 +3,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Enumeration;
 using System.Text;
+using System.Text.RegularExpressions;
 
- namespace SoemXmlToSQLite
+namespace SoemXmlToSQLite
 {
     class ParserFactory
     {
-        public static IParser CreateParser(string fileName)
+        public static IParser CreateParser(string filePath)
         {
-            if (Path.GetExtension(fileName) == ".csv")
+            string fileName = Path.GetFileName(filePath);
+            
+            if (Path.GetExtension(filePath) == ".csv")
             {
                 CSVParser parser = new CSVParser();
 
