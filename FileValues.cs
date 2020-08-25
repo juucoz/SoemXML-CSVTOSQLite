@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SQLite;
+using System.Dynamic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -59,23 +60,22 @@ namespace SoemXmlToSQLite
                     values = new DBValues(dbFilePath);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
-                    if (parser is CSVParser)
+
+                    if (parser is CSVParser csvparser)
                     {
+                        
                         Console.WriteLine(fileName);
                         // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
                         string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-                        string ne = Regex.Match(fileName, @".+?(?=_)").Value;
-                        string @class = Regex.Matches(fileName, @"(?<=_)(.*?)(?=_)")[3].Value;
-                        //string timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
+                        
 
 
                         using (FileStream stream = File.OpenRead(filePath))
                         {
+                            var parsedFile = csvparser.Parse(stream);
                             SoemXmlToDbConverter.Convert(
-                                parser,
+                                parsedFile,
                                 stream,
-                                ne,
-                                @class,
                                 fileNameWithoutExt,
                                 dbConnection,
                                 values.ColumnIndices,

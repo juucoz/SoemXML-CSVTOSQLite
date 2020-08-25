@@ -7,22 +7,24 @@ namespace SoemXmlToSQLite
     public class TextFileParseOutput
     {
         public string Ne { get; set; }
+        public string Type { get; set; }
         public string Timestamp { get; set; }
-        public List<string> headers { get; set; }
-        public List<Dictionary<string,string>> data { get; set; }
+        public List<string> Headers { get; set; }
+        public List<Dictionary<string,string>> Data { get; set; }
 
-        public TextFileParseOutput(string ne, string timestamp, List<string> headers, List<Dictionary<string, string>> data)
+        public TextFileParseOutput(string ne, string type, string timestamp, List<string> headers, List<Dictionary<string, string>> data)
         {
             Ne = ne;
+            Type = type;
             Timestamp = timestamp;
-            this.headers = headers;
-            this.data = data;
+            this.Headers = headers;
+            this.Data = data;
         }
 
         public TextFileParseOutput()
         {
-            headers = new List<string>();
-            data = new List<Dictionary<string, string>>();
+            Headers = new List<string>();
+            Data = new List<Dictionary<string, string>>();
         }
     }
 

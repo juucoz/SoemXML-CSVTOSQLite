@@ -9,8 +9,10 @@ using System.Globalization;
 
 namespace SoemXmlToSQLite
 {
+
     class CSVParser : IParser
     {
+        public System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private string[] _headers;
         public TextFileParseOutput _defaultResult;
         int skippedLineCounter = 0;
@@ -24,40 +26,44 @@ namespace SoemXmlToSQLite
         [DefaultValue(false)]
         public bool SkipEscape { get; set; }
 
+        [DefaultValue(0)]
+        public int TypeIndex { get; set; }
         public TextFileParseOutput Parse(FileStream input)
         {
-            DateTime v;
+            Console.WriteLine("Watch started");
+            watch.Start();
             _defaultResult = new TextFileParseOutput();
             string fileName = Path.GetFileName(input.Name);
-            _defaultResult.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
-            string @class = Regex.Matches(fileName, @"(?<=_)(.*?)(?=_)")[3].Value;
-            try
-            {
-                if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}h\d{2}m\d{2}sZ").Value, "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", null, DateTimeStyles.None, out v))
-                {
-                    _defaultResult.Timestamp = v.ToString("u");
-                }
+            SetFileValues(_defaultResult, fileName);
 
-                else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}").Value, "yyyy-MM-dd_HH-mm-ss", null, DateTimeStyles.None, out v))
-                {
-                    _defaultResult.Timestamp = v.ToString("u");
-                }
-                else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}\d{2}\d{2}\d{2}\d{2}").Value, "yyyyMMddHHmm", null, DateTimeStyles.None, out v))
-                {
-                    _defaultResult.Timestamp = v.ToString("u");
-                }
-                else
-                {
-                    throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
-                }
-            }
-            catch(FormatException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            //try
+            //{
+            //    if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}h\d{2}m\d{2}sZ").Value, "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", null, DateTimeStyles.None, out v))
+            //    {
+            //        _defaultResult.Timestamp = v.ToString("u");
+            //    }
+
+            //    else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}").Value, "yyyy-MM-dd_HH-mm-ss", null, DateTimeStyles.None, out v))
+            //    {
+            //        _defaultResult.Timestamp = v.ToString("u");
+            //    }
+            //    else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}\d{2}\d{2}\d{2}\d{2}").Value, "yyyyMMddHHmm", null, DateTimeStyles.None, out v))
+            //    {
+            //        _defaultResult.Timestamp = v.ToString("u");
+            //    }
+            //    else
+            //    {
+            //        throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
+            //    }
+            //}
+            //catch(FormatException e)
+            //{
+            //    Console.WriteLine(e.Message);
+            //}
             StreamReader reader = new StreamReader(input);
 
             string unTrimmedHeaders = "Timestamp" + SourceSeparator + ReadHeaders(input);
+
 
             ReadHeaders(unTrimmedHeaders, _defaultResult);
             input.Position = 0;
@@ -67,15 +73,18 @@ namespace SoemXmlToSQLite
                 reader.ReadLine();
             }
 
-
+            Console.WriteLine("Before adding timestamp value to every line. " + watch.ElapsedMilliseconds);
             while (!reader.EndOfStream)
             {
                 string line = _defaultResult.Timestamp + SourceSeparator + reader.ReadLine();
 
+
                 ReadLine(line, _defaultResult);
             }
+            Console.WriteLine("After adding timestamp reading value to every line. " + watch.ElapsedMilliseconds);
             Console.WriteLine(input.Position);
 
+            Console.WriteLine("The time for this parse is  " + watch.ElapsedMilliseconds);
             return _defaultResult;
         }
 
@@ -113,7 +122,7 @@ namespace SoemXmlToSQLite
             // create parse item
 
 
-            _defaultResult.headers.AddRange(_headers);
+            _defaultResult.Headers.AddRange(_headers);
 
         }
         /// <summary>
@@ -146,21 +155,56 @@ namespace SoemXmlToSQLite
             if (dataRow.Length == _headers.Length)
             {
                 Dictionary<string, string> dict = new Dictionary<string, string>();
-                foreach (var dh in dataRow.Zip(_defaultResult.headers, Tuple.Create))
+                foreach (var dh in dataRow.Zip(_defaultResult.Headers, Tuple.Create))
                 {
                     dict.Add(dh.Item2, dh.Item1);
                 }
 
-                _defaultResult.data.Add(dict);
+                _defaultResult.Data.Add(dict);
             }
             else
             {
-                Console.WriteLine($"Problem in row {_defaultResult.data.Count + HeaderLine + 1 + skippedLineCounter } ");
+                Console.WriteLine($"Problem in row {_defaultResult.Data.Count + HeaderLine + 1 + skippedLineCounter } ");
                 skippedLineCounter++;
             }
 
 
 
+        }
+        private void SetFileValues(TextFileParseOutput _defaultResult, string fileName)
+        {
+
+            try
+            {
+                _defaultResult.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
+                _defaultResult.Type = Regex.Matches(fileName, @"(?<=_)(.*?)(?=_)")[TypeIndex].Value;
+
+                if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}h\d{2}m\d{2}sZ").Value, "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", null, DateTimeStyles.None, out DateTime v))
+                {
+                    _defaultResult.Timestamp = v.ToString("u");
+                }
+
+                else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}").Value, "yyyy-MM-dd_HH-mm-ss", null, DateTimeStyles.None, out v))
+                {
+                    _defaultResult.Timestamp = v.ToString("u");
+                }
+                else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}\d{2}\d{2}\d{2}\d{2}").Value, "yyyyMMddHHmm", null, DateTimeStyles.None, out v))
+                {
+                    _defaultResult.Timestamp = v.ToString("u");
+                }
+                else
+                {
+                    throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
+                }
+            }
+            catch (ArgumentOutOfRangeException a)
+            {
+                Console.WriteLine(a.Message);
+            }
+            catch (FormatException e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
     }
 }

@@ -147,30 +147,48 @@ namespace SoemXmlToSQLite
             }
         }
 
-        internal static void Convert(IParser parser, FileStream stream, string ne, string @class, string fileNameWithoutExt, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
+        internal static void Convert(TextFileParseOutput parsedFile, FileStream stream, string fileNameWithoutExt, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
 
         {
-            var ParsedFile = parser.Parse(stream);
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
                 Dictionary<string, int> currentObjectColumnIndices;
-                if (!columnIndices.TryGetValue(ne,out currentObjectColumnIndices))
+                if (!columnIndices.TryGetValue(parsedFile.Ne + " " + parsedFile.Type, out currentObjectColumnIndices))
                 {
-                    string dbCommandText = $"CREATE TABLE [{ne + " " + @class}] ({string.Join(",", ParsedFile.headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
+                    string dbCommandText = $"CREATE TABLE [{parsedFile.Ne + " " + parsedFile.Type}] ({string.Join(",", parsedFile.Headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
                     using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
                     {
                         dbCommand.ExecuteNonQuery();
                     }
                 }
-                foreach (var datum in ParsedFile.data)
-                {
-                    string dbInsertText = $"INSERT INTO [{ne+ " " +@class}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
-                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
-                    {
-                        dbCommand.ExecuteNonQuery();
-                    }
-                }
 
+                SQLiteCommand command;
+                foreach (var datum in parsedFile.Data)
+                {
+                    int j = 0;
+                    string text = $"INSERT INTO [{parsedFile.Ne + " " + parsedFile.Type}] VALUES({string.Join(",", Enumerable.Repeat("?", parsedFile.Headers.Count))})";
+                    command = new SQLiteCommand(text, dbConnection);
+                    for (int i = 0; i < parsedFile.Headers.Count; i++)
+                    {
+                        command.Parameters.Add(new SQLiteParameter());
+                        command.Parameters[i].Value = null;
+                    }
+
+                    foreach (KeyValuePair<string, string> rowValue in datum)
+                    {
+                        command.Parameters[j].Value = rowValue.Value;
+                        j++;
+                    }
+                    command.ExecuteNonQuery();
+                }
+                
+
+                //    string dbInsertText = $"INSERT INTO [{parsedFile.Ne + " " + parsedFile.Type}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
+                //    using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
+                //    {
+                //        dbCommand.ExecuteNonQuery();
+                //    }
+                
                 dbTransaction.Commit();
             }
 
