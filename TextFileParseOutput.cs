@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace SoemXmlToSQLite
 {
@@ -10,7 +8,7 @@ namespace SoemXmlToSQLite
         public string Type { get; set; }
         public string Timestamp { get; set; }
         public List<string> Headers { get; set; }
-        public List<Dictionary<string,string>> Data { get; set; }
+        public List<Dictionary<string, string>> Data { get; set; }
 
         public TextFileParseOutput(string ne, string type, string timestamp, List<string> headers, List<Dictionary<string, string>> data)
         {

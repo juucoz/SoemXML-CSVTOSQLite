@@ -23,7 +23,7 @@ namespace SoemXmlToSQLite
             return selectedFolder;
         }
 
-        public static void CallConverter(string selectedFolder, DBValues values, Options options, SQLiteConnection dbConnection,string dbFilePath)
+        public static void CallConverter(string selectedFolder, DBValues values, Options options, SQLiteConnection dbConnection, string dbFilePath)
         {
             if (selectedFolder.Equals("ALL"))
             {
@@ -63,11 +63,11 @@ namespace SoemXmlToSQLite
 
                     if (parser is CSVParser csvparser)
                     {
-                        
+
                         Console.WriteLine(fileName);
                         // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
                         string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-                        
+
 
 
                         using (FileStream stream = File.OpenRead(filePath))

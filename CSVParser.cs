@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Text;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -14,7 +13,7 @@ namespace SoemXmlToSQLite
     {
         public System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private string[] _headers;
-        public TextFileParseOutput _defaultResult;
+        private TextFileParseOutput _defaultResult;
         int skippedLineCounter = 0;
 
         [DefaultValue(",")]
@@ -35,35 +34,9 @@ namespace SoemXmlToSQLite
             _defaultResult = new TextFileParseOutput();
             string fileName = Path.GetFileName(input.Name);
             SetFileValues(_defaultResult, fileName);
-
-            //try
-            //{
-            //    if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}h\d{2}m\d{2}sZ").Value, "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", null, DateTimeStyles.None, out v))
-            //    {
-            //        _defaultResult.Timestamp = v.ToString("u");
-            //    }
-
-            //    else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}").Value, "yyyy-MM-dd_HH-mm-ss", null, DateTimeStyles.None, out v))
-            //    {
-            //        _defaultResult.Timestamp = v.ToString("u");
-            //    }
-            //    else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}\d{2}\d{2}\d{2}\d{2}").Value, "yyyyMMddHHmm", null, DateTimeStyles.None, out v))
-            //    {
-            //        _defaultResult.Timestamp = v.ToString("u");
-            //    }
-            //    else
-            //    {
-            //        throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
-            //    }
-            //}
-            //catch(FormatException e)
-            //{
-            //    Console.WriteLine(e.Message);
-            //}
             StreamReader reader = new StreamReader(input);
 
             string unTrimmedHeaders = "Timestamp" + SourceSeparator + ReadHeaders(input);
-
 
             ReadHeaders(unTrimmedHeaders, _defaultResult);
             input.Position = 0;
@@ -73,7 +46,6 @@ namespace SoemXmlToSQLite
                 reader.ReadLine();
             }
 
-            Console.WriteLine("Before adding timestamp value to every line. " + watch.ElapsedMilliseconds);
             while (!reader.EndOfStream)
             {
                 string line = _defaultResult.Timestamp + SourceSeparator + reader.ReadLine();
@@ -81,7 +53,6 @@ namespace SoemXmlToSQLite
 
                 ReadLine(line, _defaultResult);
             }
-            Console.WriteLine("After adding timestamp reading value to every line. " + watch.ElapsedMilliseconds);
             Console.WriteLine(input.Position);
 
             Console.WriteLine("The time for this parse is  " + watch.ElapsedMilliseconds);
@@ -145,10 +116,12 @@ namespace SoemXmlToSQLite
                     {
                         dataRow[i] = dataRow[i].Substring(1, dataRow[i].Length > 2 ? dataRow[i].Length - 2 : dataRow[i].Length - 1);
                     }
+
                 }
             }
             else
             {
+
                 dataRow = target.Split(separators);
             }
 

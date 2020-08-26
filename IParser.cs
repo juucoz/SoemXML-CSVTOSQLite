@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 
 namespace SoemXmlToSQLite
 {
     internal interface IParser
     {
         public TextFileParseOutput Parse(FileStream input);
-        
+
     }
 }

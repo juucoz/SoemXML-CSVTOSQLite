@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Enumeration;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.IO;
 
 namespace SoemXmlToSQLite
 {
@@ -12,7 +7,7 @@ namespace SoemXmlToSQLite
         public static IParser CreateParser(string filePath)
         {
             string fileName = Path.GetFileName(filePath);
-            
+
             if (Path.GetExtension(filePath) == ".csv")
             {
                 CSVParser parser = new CSVParser();
