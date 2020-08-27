@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Data.Common;
 using System.Data.SQLite;
-using System.Dynamic;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace SoemXmlToSQLite
@@ -53,9 +49,9 @@ namespace SoemXmlToSQLite
                     }
                 }
             }
-            else if (Directory.Exists(options.InputPath + $"\\{selectedFolder}"))
+            else if (Directory.Exists(Path.Join(options.InputPath, $"{selectedFolder}")))
             {
-                foreach (string filePath in Directory.EnumerateFiles(options.InputPath + $"\\{selectedFolder}", options.SourceFileMask, SearchOption.AllDirectories))
+                foreach (string filePath in Directory.EnumerateFiles(Path.Join(options.InputPath, $"{selectedFolder}"), options.SourceFileMask, SearchOption.AllDirectories))
                 {
                     values = new DBValues(dbFilePath);
                     string fileName = Path.GetFileName(filePath);

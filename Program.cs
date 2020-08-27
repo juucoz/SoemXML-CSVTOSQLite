@@ -7,7 +7,7 @@ namespace SoemXmlToSQLite
     {
         static void Main(string[] args)
         {
-             var opts = Options.GetOptions(args);
+            var opts = Options.GetOptions(args);
 
             //string inputPath = @"C:\Users\ata.akcay\Desktop\inputFile";
             //string sourceFileMask = "*.csv";
@@ -35,8 +35,6 @@ namespace SoemXmlToSQLite
                 FileValues.CallConverter(selectedFolder, dbvalues, opts, dbConnection, dbFilePath);
 
             }
-
-
 
         }
 
