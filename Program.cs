@@ -7,20 +7,22 @@ namespace SoemXmlToSQLite
     {
         static void Main(string[] args)
         {
-            // var opts = Options.GetOptions(args);
+             var opts = Options.GetOptions(args);
 
-            string inputPath = @"C:\Users\ata.akcay\Desktop\inputFile";
-            string sourceFileMask = "*.csv";
-            string dbFilePath = "soem6.sqlite";
+            //string inputPath = @"C:\Users\ata.akcay\Desktop\inputFile";
+            //string sourceFileMask = "*.csv";
+            //string dbFilePath = "soem6.sqlite";
 
-            var opts = new Options();
-            opts.InputPath = inputPath;
-            opts.SourceFileMask = sourceFileMask;
-            opts.DbFilePath = dbFilePath;
+            //var opts = new Options
+            //{
+            //    InputPath = inputPath,
+            //    SourceFileMask = sourceFileMask,
+            //    DbFilePath = dbFilePath
+            //};
 
-            // string inputPath = opts.InputPath;
-            // string sourceFileMask = opts.SourceFileMask;
-            // string dbFilePath = opts.DbFilePath;
+            string inputPath = opts.InputPath;
+            string sourceFileMask = opts.SourceFileMask;
+            string dbFilePath = opts.DbFilePath;
 
             Console.WriteLine(inputPath + sourceFileMask + dbFilePath);
 
