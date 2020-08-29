@@ -19,6 +19,6 @@ publish-linux:
     - dotnet publish -r linux-x64 --self-contained true
   artifacts:
     paths:
-     - /builds/ata.akcay/soemxmltosqlite/bin/
+     - bin/
 
 
