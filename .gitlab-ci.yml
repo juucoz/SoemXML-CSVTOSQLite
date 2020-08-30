@@ -20,6 +20,6 @@ publish-linux:
   artifacts:
     name:
     paths:
-     - /builds/ata.akcay/soemxmltosqlite/bin/
+     - bin/
 
 
