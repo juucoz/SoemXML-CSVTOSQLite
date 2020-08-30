@@ -6,14 +6,16 @@ namespace SoemXmlToSQLite
     {
         public string Ne { get; set; }
         public string Type { get; set; }
+        public string Class { get; set; }
         public string Timestamp { get; set; }
         public List<string> Headers { get; set; }
         public List<Dictionary<string, string>> Data { get; set; }
 
-        public TextFileParseOutput(string ne, string type, string timestamp, List<string> headers, List<Dictionary<string, string>> data)
+        public TextFileParseOutput(string ne, string type, string @class, string timestamp, List<string> headers, List<Dictionary<string, string>> data)
         {
             Ne = ne;
             Type = type;
+            Class = @class;
             Timestamp = timestamp;
             this.Headers = headers;
             this.Data = data;

@@ -39,6 +39,11 @@ namespace SoemXmlToSQLite
                 }
                 return parser;
             }
+            if(Path.GetExtension(filePath) == ".xml")
+            {
+                XMLParser parser = new XMLParser();
+                return parser;
+            }
             return null;
         }
     }

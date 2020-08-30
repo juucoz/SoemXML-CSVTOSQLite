@@ -38,10 +38,10 @@ namespace SoemXmlToSQLite
 
             string unTrimmedHeaders = "Timestamp" + SourceSeparator + ReadHeaders(input);
 
-            ReadHeaders(unTrimmedHeaders, _defaultResult);
+            ParseHeaders(unTrimmedHeaders, _defaultResult);
             input.Position = 0;
 
-            for (var i = 1; i <= HeaderLine; i++)
+            for (var space = 1; space <= HeaderLine; space++)
             {
                 reader.ReadLine();
             }
@@ -51,7 +51,7 @@ namespace SoemXmlToSQLite
                 string line = _defaultResult.Timestamp + SourceSeparator + reader.ReadLine();
 
 
-                ReadLine(line, _defaultResult);
+                ParseLine(line, _defaultResult);
             }
             Console.WriteLine(input.Position);
 
@@ -63,20 +63,17 @@ namespace SoemXmlToSQLite
         {
             StreamReader rd = new StreamReader(inp, leaveOpen: true);
 
-            for (var i = 1; i < HeaderLine; i++)
+            for (var space = 1; space < HeaderLine; space++)
             {
                 rd.ReadLine();
             }
-            var unTrimmedHeaderssss = rd.ReadLine();
-            return unTrimmedHeaderssss;
+            var unTrimmedHeaders = rd.ReadLine();
+            return unTrimmedHeaders;
 
         }
 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="headerLine"></param>
-        protected void ReadHeaders(string headerLine, TextFileParseOutput _defaultResult)
+        
+        protected void ParseHeaders(string headerLine, TextFileParseOutput _defaultResult)
         {
             string targetLine = headerLine;
             if (SkipEscape)
@@ -100,7 +97,7 @@ namespace SoemXmlToSQLite
         ///
         /// </summary>
         /// <param name="line"></param>
-        protected void ReadLine(string line, TextFileParseOutput _defaultResult)
+        protected void ParseLine(string line, TextFileParseOutput _defaultResult)
         {
             string[] dataRow;
             char[] separators = SourceSeparator.ToCharArray();
@@ -137,7 +134,7 @@ namespace SoemXmlToSQLite
             }
             else
             {
-                Console.WriteLine($"Problem in row {_defaultResult.Data.Count + HeaderLine + 1 + skippedLineCounter } ");
+                Console.WriteLine($"Invalid value count in row {_defaultResult.Data.Count + HeaderLine + 1 + skippedLineCounter } ");
                 skippedLineCounter++;
             }
 

@@ -2,152 +2,123 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SQLite;
-using System.IO;
 using System.Linq;
-using System.Xml;
-using System.Xml.Linq;
 
 namespace SoemXmlToSQLite
 {
     internal static class SoemXmlToDbConverter
     {
         public static void Convert(
-            Stream xmlStream,
-            string ne,
-            string @class,
-            string timestamp,
+            TextFileParseOutput parsedFile,
             SQLiteConnection dbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices,
             Dictionary<string, SQLiteCommand> dbInsertCommandCache)
         {
-            using (SQLiteTransaction dbTransaction = dbConnection.BeginTransaction())
+            using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
-
-                XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
+                int counter = 0;
+                foreach (var datum in parsedFile.Data)
                 {
-                    DtdProcessing = DtdProcessing.Ignore,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CheckCharacters = false,
-                    ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None
-                };
-                using (XmlReader xmlReader = XmlReader.Create(xmlStream, xmlReaderSettings))
-                {
-                    xmlReader.MoveToContent();
-                    while (!xmlReader.EOF)
+                    if (datum.Count > 2)
                     {
-                        xmlReader.Read();
-                        if (string.Equals(xmlReader.LocalName, "row", StringComparison.Ordinal))
+                        Dictionary<string, int> currentObjectColumnIndices;
+                        if (!columnIndices.TryGetValue(parsedFile.Class, out currentObjectColumnIndices))
                         {
-                            break;
-                        }
-                    }
-
-                    while (string.Equals(xmlReader.LocalName, "row", StringComparison.Ordinal))
-                    {
-                        XElement xObject = (XElement)XNode.ReadFrom(xmlReader);
-                        Dictionary<string, string> parameters =
-                            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                            currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                            int columnIndex = 0;
+                            foreach (KeyValuePair<string, string> rowValues in datum)
                             {
-                                { "NE", ne },
-                                { "TIMESTAMP", timestamp },
-                            };
-                        foreach (var xAttribute in xObject.Attributes())
-                        {
-                            string parameterName = xAttribute.Name.LocalName;
-                            string parameterValue = xAttribute.Value;
-                            parameters.Add(parameterName, parameterValue);
-                        }
-                        if (parameters.Count > 2) // > 1 because NE is always there
-                        {
-                            Dictionary<string, int> currentObjectColumnIndices;
-                            if (!columnIndices.TryGetValue(@class, out currentObjectColumnIndices))
-                            {
-                                currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                                int columnIndex = 0;
-                                foreach (KeyValuePair<string, string> parameter in parameters)
-                                {
-                                    string parameterName = parameter.Key;
-                                    string parameterValue = parameter.Value;
-                                    currentObjectColumnIndices.Add(parameterName, columnIndex);
-                                    columnIndex++;
-                                }
-                                columnIndices.Add(@class, currentObjectColumnIndices);
-
-                                string dbCommandText = $"CREATE TABLE [{@class}] ({string.Join(",", parameters.Select(p => $"[{p.Key}] TEXT COLLATE NOCASE"))})";
-                                using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                                {
-                                    dbCommand.ExecuteNonQuery();
-                                }
+                                string parameterName = rowValues.Key;
+                                string parameterValue = rowValues.Value;
+                                currentObjectColumnIndices.Add(parameterName, columnIndex);
+                                columnIndex++;
                             }
-                            else
+                            columnIndices.Add(parsedFile.Class, currentObjectColumnIndices);
+                            string dbCommandText = $"CREATE TABLE {parsedFile.Class} ({string.Join(",", datum.Select(d => $"[{d.Key}] TEXT COLLATE NOCASE "))})";
+                            using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
                             {
-                                foreach (KeyValuePair<string, string> parameter in parameters)
+                                dbCommand.ExecuteNonQuery();
+                            }
+                        }
+                        else
+                        {
+                            foreach (KeyValuePair<string, string> rowValues in datum)
+                            {
+                                string parameterName = rowValues.Key;
+                                int columnIndex;
+                                if (!currentObjectColumnIndices.TryGetValue(parameterName, out columnIndex))
                                 {
-                                    string parameterName = parameter.Key;
-                                    int columnIndex;
-                                    if (!currentObjectColumnIndices.TryGetValue(parameterName, out columnIndex))
+                                    string dbCommandText = $"ALTER TABLE {parsedFile.Class} ADD [{parameterName}] TEXT COLLATE NOCASE";
+                                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
                                     {
-                                        columnIndex = currentObjectColumnIndices.Count;
-                                        currentObjectColumnIndices.Add(parameterName, columnIndex);
-                                        string dbCommandText = $"ALTER TABLE [{@class}] ADD [{parameterName}] TEXT COLLATE NOCASE";
-                                        using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                                        {
-                                            dbCommand.ExecuteNonQuery();
-                                        }
+                                        dbCommand.ExecuteNonQuery();
                                     }
                                 }
-                            }
 
-                            SQLiteCommand dbInsertCommand;
-                            if (!dbInsertCommandCache.TryGetValue(@class, out dbInsertCommand))
+                            }
+                        }
+                        SQLiteCommand dbInsertCommand;
+                        if (!dbInsertCommandCache.TryGetValue(parsedFile.Class, out dbInsertCommand))
+                        {
+                            dbInsertCommand = new SQLiteCommand($"INSERT INTO [{parsedFile.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
+                            for (int i = 0; i < currentObjectColumnIndices.Count; i++)
+                                dbInsertCommand.Parameters.Add(new SQLiteParameter());
+                            dbInsertCommandCache.Add(parsedFile.Class, dbInsertCommand);
+                        }
+                        else
+                        {
+                            if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
                             {
-                                dbInsertCommand = new SQLiteCommand($"INSERT INTO [{@class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
-                                for (int i = 0; i < currentObjectColumnIndices.Count; i++)
+                                dbInsertCommand.CommandText = $"INSERT INTO [{parsedFile.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})";
+                                int numberOfParametersToAdd = currentObjectColumnIndices.Count - dbInsertCommand.Parameters.Count;
+                                for (int i = 0; i < numberOfParametersToAdd; i++)
+                                {
                                     dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                                dbInsertCommandCache.Add(@class, dbInsertCommand);
-                            }
-                            else
-                            {
-                                if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
-                                {
-                                    dbInsertCommand.CommandText = $"INSERT INTO [{@class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})";
-                                    int numberOfParametersToAdd = currentObjectColumnIndices.Count - dbInsertCommand.Parameters.Count;
-                                    for (int i = 0; i < numberOfParametersToAdd; i++)
-                                    {
-                                        dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                                    }
                                 }
                             }
+                        }
 
-                            for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
-                            {
-                                dbInsertCommand.Parameters[i].Value = null;
-                            }
+                        for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
+                        {
+                            dbInsertCommand.Parameters[i].Value = null;
+                        }
 
-                            foreach (KeyValuePair<string, string> parameter in parameters)
-                            {
-                                string parameterName = parameter.Key;
-                                string parameterValue = parameter.Value;
-                                int columnIndex = currentObjectColumnIndices[parameterName];
-                                dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
-                            }
+                        foreach (KeyValuePair<string, string> rowValue in datum)
+                        {
+                            string parameterName = rowValue.Key;
+                            string parameterValue = rowValue.Value;
+                            int columnIndex = currentObjectColumnIndices[parameterName];
+                            dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
+                        }
+
+                        try
+                        {
                             dbInsertCommand.ExecuteNonQuery();
                         }
-                        xmlReader.Skip();
+                        catch (ObjectDisposedException o)
+                        {
+                            counter++;
+                            if (counter == (parsedFile.Data.Count))
+                            {
+                                Console.WriteLine("This table has already been inserted.");
+                            }
+                            return;
+                        }
+
                     }
-
                 }
-
                 dbTransaction.Commit();
             }
         }
 
-        internal static void Convert(TextFileParseOutput parsedFile, FileStream stream, string fileNameWithoutExt, SQLiteConnection dbConnection, Dictionary<string, Dictionary<string, int>> columnIndices, Dictionary<string, SQLiteCommand> dbInsertCommandCache)
+
+        internal static void Convert(
+            TextFileParseOutput parsedFile,
+            SQLiteConnection dbConnection,
+            Dictionary<string,
+            Dictionary<string, int>> columnIndices)
 
         {
-            List<SQLiteCommand> InsertCommandCache = new List<SQLiteCommand>();
             System.Diagnostics.Stopwatch watch1 = new System.Diagnostics.Stopwatch();
             watch1.Start();
             Console.WriteLine("Watch for db actions have started");
@@ -173,14 +144,12 @@ namespace SoemXmlToSQLite
                 foreach (var datum in parsedFile.Data)
                 {
                     int counter = 0;
-
                     foreach (KeyValuePair<string, string> rowValue in datum)
                     {
                         command.Parameters[counter].Value = rowValue.Value;
                         counter++;
                     }
-                    InsertCommandCache.Add(command);
-
+                    command.ExecuteNonQuery();
 
                     //string dbInsertText = $"INSERT INTO [{parsedFile.Ne + " " + parsedFile.Type}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
                     //using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
@@ -188,10 +157,7 @@ namespace SoemXmlToSQLite
                     //    dbCommand.ExecuteNonQuery();
                     //}
                 }
-                foreach (var cmd in InsertCommandCache)
-                {
-                    cmd.ExecuteNonQuery();
-                }
+
                 Console.WriteLine("Watch for db actions end : " + watch1.ElapsedMilliseconds);
                 dbTransaction.Commit();
             }

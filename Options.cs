@@ -19,7 +19,7 @@ namespace SoemXmlToSQLite
         public static Options GetOptions(string[] args)
         {
             var opts = new Options();
-            var result = CommandLine.Parser.Default.ParseArguments<Options>(args)
+            var result = Parser.Default.ParseArguments<Options>(args)
             .WithParsed<Options>(p => opts = p)
             .WithNotParsed<Options>(e =>
             {

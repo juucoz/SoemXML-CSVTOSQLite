@@ -32,7 +32,7 @@ namespace SoemXmlToSQLite
             {
                 dbConnection.Open();
                 var selectedFolder = FileValues.GetFileValue(inputPath);
-                FileValues.CallConverter(selectedFolder, dbvalues, opts, dbConnection, dbFilePath);
+                FileValues.CallConverter(selectedFolder, opts, dbConnection, dbFilePath);
 
             }
 
