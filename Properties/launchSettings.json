@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "SoemXmlToSQLite": {
+      "commandName": "Project"
+    },
+    "SoemDebug": {
+      "commandName": "Project",
+      "commandLineArgs": "-i  C:\\Users\\ata.akcay\\Desktop\\inputFile -m * -d soem9.sqlite"
+    }
+  }
+}
