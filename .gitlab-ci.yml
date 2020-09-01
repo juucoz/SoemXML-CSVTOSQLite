@@ -13,15 +13,12 @@ build:
 publish-linux:
   stage: publish
   script:
-    - export PREV_VERSION=$(grep "<VersionPrefix>" soemxmltosqlite/SoemXmlToSQLite.csproj | sed -E "s/.*<VersionPrefix>(.*)<\/VersionPrefix>.*/\\1")
     - export VERSION=$CI_PIPELINE_ID.$CI_PIPELINE_IID
     - echo $VERSION
     - dotnet publish -c Release -r linux-x64 --self-contained true
-    - pwd
-    - ls
   artifacts:
     name: "$CI_PROJECT_NAME-$CI_PIPELINE_IID-linux-x64"
     paths:
-     - soemxmltosqlite/bin/Release/
+     - bin/Release/
 
 
