@@ -6,7 +6,9 @@ from XML and CSV files and saving it in a SQLite file.
 ## Installation
 
 ### Linux-x64 --self-contained
-Download the latest linux-64 artifact from [here](../-/jobs/artifacts/master/download?job=publish-linux) and extract it.
+Download the latest 
+linux-x64 artifact from [here](../-/jobs/artifacts/master/download?job=publish-linux) 
+win10-x64 artifact from [here](../-/jobs/artifacts/master/download?job=publish-windows) and extract it.
 ```
 ./bin/Release/netcoreapp3.1/linux-x64/publish/SoemXMLToSQLite
 ```
