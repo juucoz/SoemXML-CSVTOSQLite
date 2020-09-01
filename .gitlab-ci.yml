@@ -18,6 +18,7 @@ publish-linux:
     - dotnet publish -c Release -r linux-x64 --self-contained true
   artifacts:
     name: "$CI_PROJECT_NAME-$CI_PIPELINE_IID-linux-x64"
+    expire_in: 1y
     paths:
      - bin/Release/
 
