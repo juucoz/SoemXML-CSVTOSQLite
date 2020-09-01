@@ -20,6 +20,6 @@ publish-linux:
   artifacts:
     name: "$CI_PROJECT_NAME-$CI_PIPELINE_IID-linux-x64"
     paths:
-     - /soemxmltosqlite/bin/Release/
+     - soemxmltosqlite/bin/Release/
 
 
