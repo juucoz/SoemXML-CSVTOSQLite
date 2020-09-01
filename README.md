@@ -8,12 +8,12 @@ from XML and CSV files and saving it in a SQLite file.
 ### Linux-x64 --self-contained
 Download the linux-64 artifact in [pipelines](../../../pipelines) and extract it.
 ```
-.\bin\Release\netcoreapp3.1\linux-x64\publish\SoemXMLToSQLite
+./bin/Release/netcoreapp3.1/linux-x64/publish/SoemXMLToSQLite
 ```
 ## Usage
 
 ```
-.\SoemXMLToSQLite -i inputPath -m sourceFileMask -d dbFilePath
+./SoemXMLToSQLite -i inputPath -m sourceFileMask -d dbFilePath
 ```
 #### inputPath 
 This is the path that the files will be searched.
@@ -24,7 +24,7 @@ This is the path that the database will be created.
 
 
 ```
-.\SoemXMLToSQLite -i \home\ata\Downloads\inputFile -m *.xml -d soem.sqlite
+./SoemXMLToSQLite -i /home/ata/Downloads/inputFile -m *.xml -d soem.sqlite
 ```
 
 
