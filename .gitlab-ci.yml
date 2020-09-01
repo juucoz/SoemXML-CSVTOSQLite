@@ -3,7 +3,7 @@ image: mcr.microsoft.com/dotnet/core/sdk:3.1
 stages:
   - build
   - publish
-  - run
+  
 
 build:
  stage: build
@@ -16,10 +16,10 @@ publish-linux:
     - export PREV_VERSION=$(grep "<VersionPrefix>" soemxmltosqlite/SoemXmlToSQLite.csproj | sed -E "s/.*<VersionPrefix>(.*)<\/VersionPrefix>.*/\\1")
     - export VERSION=$CI_PIPELINE_ID.$CI_PIPELINE_IID
     - echo $VERSION
-    - dotnet publish -r linux-x64 --self-contained true
+    - dotnet publish -c Release -r linux-x64 --self-contained true
   artifacts:
     name:
     paths:
-     - bin/
+     - SoemXmlToSQLite/bin/Release
 
 
