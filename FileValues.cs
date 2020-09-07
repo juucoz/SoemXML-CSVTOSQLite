@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Data.SQLite;
 using System.IO;
 
@@ -20,6 +21,7 @@ namespace SoemXmlToSQLite
 
         public static void CallConverter(string selectedFolder, Options options, SQLiteConnection dbConnection, string dbFilePath)
         {
+            
             if (Directory.Exists(Path.Join(options.InputPath, $"{selectedFolder}")))
             {
                 foreach (string filePath in Directory.EnumerateFiles(Path.Join(options.InputPath, $"{selectedFolder}"), options.SourceFileMask, SearchOption.AllDirectories))
@@ -27,6 +29,9 @@ namespace SoemXmlToSQLite
                     var values = new DBValues(dbFilePath);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
+
+                    var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                    Log.Information("Parse start time for {Full_File_Path} is {Parse_Start_Time}", filePath, start);
 
                     if (parser is CSVParser csvparser)
                     {
@@ -36,6 +41,8 @@ namespace SoemXmlToSQLite
                         using (FileStream stream = File.OpenRead(filePath))
                         {
                             var parsedFile = csvparser.Parse(stream);
+                            var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                            Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
                             SoemXmlToDbConverter.Convert(
                                 parsedFile,
                                 dbConnection,
@@ -53,6 +60,8 @@ namespace SoemXmlToSQLite
                             using (FileStream stream = File.OpenRead(filePath))
                             {
                                 var parsedFile = xmlparser.Parse(stream);
+                                var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                                Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
                                 SoemXmlToDbConverter.Convert(
                                     parsedFile,
                                     dbConnection,
@@ -64,7 +73,9 @@ namespace SoemXmlToSQLite
                 }
             }
             else
-            {
+            { 
+                
+                Log.Error(new FileNotFoundException(), "This directory {Full_File_Path} does not exist.", Path.Join(options.InputPath, $"{selectedFolder}"));
                 Console.WriteLine("This directory doesn't exist.");
                 return;
             }

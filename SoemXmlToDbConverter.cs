@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SQLite;
@@ -16,6 +17,8 @@ namespace SoemXmlToSQLite
         {
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
+                var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                Log.Information(@"SQLiteInsert start time for {Full_File_Path} is {Write_Start_Time} for table {target_table}", parsedFile.FilePath, start, dbConnection.FileName);
                 int counter = 0;
                 foreach (var datum in parsedFile.Data)
                 {
@@ -98,29 +101,35 @@ namespace SoemXmlToSQLite
                         catch (ObjectDisposedException o)
                         {
                             counter++;
-                            if (counter == (parsedFile.Data.Count))
-                            {
-                                Console.WriteLine("This table has already been inserted.");
-                            }
+                            //if (counter == (parsedFile.Data.Count))
+                            //{
+                            //    Console.WriteLine("This table has already been inserted.");
+                            //}
                             return;
                         }
-
+                        
                     }
+
                 }
+
+                var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+
+                Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} with {success_failure} for table {target_table}", parsedFile.FilePath, stop, stop - start, $"{parsedFile.Data.Count}" + "/" + $"{counter}", dbConnection.FileName);
                 dbTransaction.Commit();
             }
+            SoemXmlToDbConverter.LogToTable(parsedFile.logValues, columnIndices);
         }
+
 
 
         internal static void Convert(
             TextFileParseOutput parsedFile,
             SQLiteConnection dbConnection,
-            Dictionary<string,
-            Dictionary<string, int>> columnIndices)
+            Dictionary<string, Dictionary<string, int>> columnIndices)
 
         {
-            System.Diagnostics.Stopwatch watch1 = new System.Diagnostics.Stopwatch();
-            watch1.Start();
+            var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+            Log.Information("SQLiteInsert start time for {Full_File_Path} is {Write_Start_Time} for table {target_table}", parsedFile.FilePath, start, dbConnection.FileName);
             Console.WriteLine("Watch for db actions have started");
 
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
@@ -157,11 +166,52 @@ namespace SoemXmlToSQLite
                     //    dbCommand.ExecuteNonQuery();
                     //}
                 }
-
-                Console.WriteLine("Watch for db actions end : " + watch1.ElapsedMilliseconds);
+                var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                parsedFile.logValues.Logs["Load_Duration"] = (stop - start).ToString();
+                parsedFile.logValues.Logs["Target_Table"] = dbConnection.DataSource;
+                Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} for table {target_table}", parsedFile.FilePath, stop, stop - start, dbConnection.FileName);
                 dbTransaction.Commit();
             }
+            SoemXmlToDbConverter.LogToTable(parsedFile.logValues, columnIndices);
 
+        }
+        private static void LogToTable(LogValues logValues, Dictionary<string, Dictionary<string, int>> columnIndices)
+        {
+            var builder = new SQLiteConnectionStringBuilder()
+            {
+                DataSource = "log.sqlite",
+                Pooling = false
+            };
+            var logConnectionString = builder.ConnectionString;
+            var logDBValues = new DBValues("log.sqlite");
+            using (SQLiteConnection logConnection = new SQLiteConnection(logConnectionString))
+            {
+                logConnection.Open();
+
+                if (!logDBValues.ColumnIndices.ContainsKey("Log"))
+                {
+                    columnIndices.Add("Log", new Dictionary<string, int>()); ;
+                    string dbCommandText = $"CREATE TABLE Log ({string.Join(",", logValues.Logs.Select(l => $"[{l.Key}] TEXT COLLATE NOCASE "))})";
+
+
+                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, logConnection)) 
+                    {
+                        dbCommand.ExecuteNonQuery(); 
+                    }
+                        
+
+                }
+                else
+                {
+                    string dbCommandText = $"INSERT INTO Log VALUES({string.Join(",", logValues.Logs.Select(l => $"'{l.Value}'"))})";
+                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, logConnection))
+                    {
+                        dbCommand.ExecuteNonQuery();
+                    }
+                }
+            }
         }
     }
 }
+
+

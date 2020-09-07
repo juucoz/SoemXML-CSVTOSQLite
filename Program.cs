@@ -1,12 +1,40 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using Serilog;
+using System;
 using System.Data.SQLite;
+using System.Diagnostics;
+using System.IO;
 
 namespace SoemXmlToSQLite
 {
+    public class StopwatchProxy
+    {
+        private Stopwatch _stopwatch;
+        private static readonly StopwatchProxy _stopwatchProxy = new StopwatchProxy();
+
+        private StopwatchProxy()
+        {
+            _stopwatch = new Stopwatch();
+        }
+
+        public Stopwatch Stopwatch { get { return _stopwatch; } }
+
+        public static StopwatchProxy Instance
+        {
+            get { return _stopwatchProxy; }
+        }
+    }
     class Program
     {
         static void Main(string[] args)
         {
+
+
+            Log.Logger = new LoggerConfiguration()
+            .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+
+
             var opts = Options.GetOptions(args);
 
             //string inputPath = @"C:\Users\ata.akcay\Desktop\inputFile";
@@ -32,11 +60,15 @@ namespace SoemXmlToSQLite
             {
                 dbConnection.Open();
                 var selectedFolder = FileValues.GetFileValue(inputPath);
+                StopwatchProxy.Instance.Stopwatch.Start();
                 FileValues.CallConverter(selectedFolder, opts, dbConnection, dbFilePath);
 
             }
-
+            Log.CloseAndFlush();
         }
+        
+
+
 
     }
 }

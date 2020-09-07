@@ -5,16 +5,18 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using Serilog;
 
 namespace SoemXmlToSQLite
 {
 
     class CSVParser : IParser
     {
-        public System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+       // public System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private string[] _headers;
         private TextFileParseOutput _defaultResult;
         int skippedLineCounter = 0;
+        
 
         [DefaultValue(",")]
         public string SourceSeparator { get; set; } = ",";
@@ -29,11 +31,9 @@ namespace SoemXmlToSQLite
         public int TypeIndex { get; set; }
         public TextFileParseOutput Parse(FileStream input)
         {
-            Console.WriteLine("Watch started");
-            watch.Start();
+            var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             _defaultResult = new TextFileParseOutput();
-            string fileName = Path.GetFileName(input.Name);
-            SetFileValues(_defaultResult, fileName);
+            SetFileValues(_defaultResult, input.Name);
             StreamReader reader = new StreamReader(input);
 
             string unTrimmedHeaders = "Timestamp" + SourceSeparator + ReadHeaders(input);
@@ -54,8 +54,9 @@ namespace SoemXmlToSQLite
                 ParseLine(line, _defaultResult);
             }
             Console.WriteLine(input.Position);
+            var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine("The time for this parse is  " + watch.ElapsedMilliseconds);
+            _defaultResult.logValues = new LogValues(input.Name,start,stop,stop-start,_defaultResult.Data.Count - skippedLineCounter,skippedLineCounter,0,""); 
             return _defaultResult;
         }
 
@@ -134,18 +135,21 @@ namespace SoemXmlToSQLite
             }
             else
             {
+                Log.Error("Invalid value count in row {Errow_Row}", _defaultResult.Data.Count + HeaderLine + 1 + skippedLineCounter);
                 Console.WriteLine($"Invalid value count in row {_defaultResult.Data.Count + HeaderLine + 1 + skippedLineCounter } ");
                 skippedLineCounter++;
             }
-
-
+            
+            
 
         }
-        private void SetFileValues(TextFileParseOutput _defaultResult, string fileName)
+        private void SetFileValues(TextFileParseOutput _defaultResult, string filePath)
         {
-
+            string fileName = Path.GetFileName(filePath);
             try
             {
+                _defaultResult.FilePath = filePath;
+                
                 _defaultResult.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
                 _defaultResult.Type = Regex.Matches(fileName, @"(?<=_)(.*?)(?=_)")[TypeIndex].Value;
 
@@ -164,15 +168,18 @@ namespace SoemXmlToSQLite
                 }
                 else
                 {
+                    
                     throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
                 }
             }
             catch (ArgumentOutOfRangeException a)
             {
+                Log.Error(a,"Argument Out of Range Exception occured.");
                 Console.WriteLine(a.Message);
             }
             catch (FormatException e)
             {
+                Log.Error(e,"File, {File_Name} couldn't be parsed by any DateTime formats.", fileName );
                 Console.WriteLine(e.Message);
             }
         }
