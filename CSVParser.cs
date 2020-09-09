@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using Serilog;
-using System.Security.Permissions;
 
 namespace SoemXmlToSQLite
 {
