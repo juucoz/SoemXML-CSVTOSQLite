@@ -22,94 +22,84 @@ namespace SoemXmlToSQLite
                 int counter = 0;
                 foreach (var datum in parsedFile.Data)
                 {
-                    if (datum.Count > 2)
+                    Dictionary<string, int> currentObjectColumnIndices;
+                    if (!columnIndices.TryGetValue(parsedFile.Class, out currentObjectColumnIndices))
                     {
-                        Dictionary<string, int> currentObjectColumnIndices;
-                        if (!columnIndices.TryGetValue(parsedFile.Class, out currentObjectColumnIndices))
+                        currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        int columnIndex = 0;
+                        foreach (KeyValuePair<string, string> rowValues in datum)
                         {
-                            currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                            int columnIndex = 0;
-                            foreach (KeyValuePair<string, string> rowValues in datum)
-                            {
-                                string parameterName = rowValues.Key;
-                                string parameterValue = rowValues.Value;
-                                currentObjectColumnIndices.Add(parameterName, columnIndex);
-                                columnIndex++;
-                            }
-                            columnIndices.Add(parsedFile.Class, currentObjectColumnIndices);
-                            string dbCommandText = $"CREATE TABLE {parsedFile.Class} ({string.Join(",", datum.Select(d => $"[{d.Key}] TEXT COLLATE NOCASE "))})";
-                            using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                            {
-                                dbCommand.ExecuteNonQuery();
-                            }
+                            string parameterName = rowValues.Key;
+                            string parameterValue = rowValues.Value;
+                            currentObjectColumnIndices.Add(parameterName, columnIndex);
+                            columnIndex++;
                         }
-                        else
+                        columnIndices.Add(parsedFile.Class, currentObjectColumnIndices);
+                        string dbCommandText = $"CREATE TABLE {parsedFile.Class} ({string.Join(",", datum.Select(d => $"[{d.Key}] NUMBER COLLATE NOCASE "))})";
+                        using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
                         {
-                            foreach (KeyValuePair<string, string> rowValues in datum)
-                            {
-                                string parameterName = rowValues.Key;
-                                int columnIndex;
-                                if (!currentObjectColumnIndices.TryGetValue(parameterName, out columnIndex))
-                                {
-                                    string dbCommandText = $"ALTER TABLE {parsedFile.Class} ADD [{parameterName}] TEXT COLLATE NOCASE";
-                                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                                    {
-                                        dbCommand.ExecuteNonQuery();
-                                    }
-                                }
+                            dbCommand.ExecuteNonQuery();
+                        }
+                    }
+                    else
+                    {
+                        int columnIndex = 0;
+                        foreach (KeyValuePair<string, string> rowValues in datum)
+                        {
+                            string parameterName = rowValues.Key;
 
+
+                            if (!currentObjectColumnIndices.TryGetValue(parameterName, out columnIndex))
+                            {
+                                string dbCommandText = $"ALTER TABLE {parsedFile.Class} ADD [{parameterName}] NUMBER COLLATE NOCASE";
+                                using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
+                                {
+                                    dbCommand.ExecuteNonQuery();
+
+                                }
+                                Log.Information($"A new column {parameterName} is added to Table {parsedFile.Class}");
+                                currentObjectColumnIndices.Add(parameterName, currentObjectColumnIndices.Count);
                             }
+                            columnIndex++;
                         }
-                        SQLiteCommand dbInsertCommand;
-                        if (!dbInsertCommandCache.TryGetValue(parsedFile.Class, out dbInsertCommand))
+                    }
+                    SQLiteCommand dbInsertCommand = new SQLiteCommand(dbConnection);
+                    if (!dbInsertCommandCache.TryGetValue(parsedFile.Class, out dbInsertCommand))
+                    {
+                        dbInsertCommand = new SQLiteCommand($"INSERT INTO [{parsedFile.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
+                        for (int i = 0; i < currentObjectColumnIndices.Count; i++)
+                            dbInsertCommand.Parameters.Add(new SQLiteParameter());
+                        dbInsertCommandCache.Add(parsedFile.Class, dbInsertCommand);
+                    }
+                    else
+                    {
+                        dbInsertCommand.Connection = dbConnection;
+                        if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
                         {
-                            dbInsertCommand = new SQLiteCommand($"INSERT INTO [{parsedFile.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
-                            for (int i = 0; i < currentObjectColumnIndices.Count; i++)
+                            dbInsertCommand.CommandText = $"INSERT INTO [{parsedFile.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})";
+                            int numberOfParametersToAdd = currentObjectColumnIndices.Count - dbInsertCommand.Parameters.Count;
+                            for (int i = 0; i < numberOfParametersToAdd; i++)
+                            {
                                 dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                            dbInsertCommandCache.Add(parsedFile.Class, dbInsertCommand);
-                        }
-                        else
-                        {
-                            if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
-                            {
-                                dbInsertCommand.CommandText = $"INSERT INTO [{parsedFile.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})";
-                                int numberOfParametersToAdd = currentObjectColumnIndices.Count - dbInsertCommand.Parameters.Count;
-                                for (int i = 0; i < numberOfParametersToAdd; i++)
-                                {
-                                    dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                                }
                             }
                         }
 
-                        for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
-                        {
-                            dbInsertCommand.Parameters[i].Value = null;
-                        }
-
-                        foreach (KeyValuePair<string, string> rowValue in datum)
-                        {
-                            string parameterName = rowValue.Key;
-                            string parameterValue = rowValue.Value;
-                            int columnIndex = currentObjectColumnIndices[parameterName];
-                            dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
-                        }
-
-                        try
-                        {
-                            dbInsertCommand.ExecuteNonQuery();
-                        }
-                        catch (ObjectDisposedException o)
-                        {
-                            counter++;
-                            //if (counter == (parsedFile.Data.Count))
-                            //{
-                            //    Console.WriteLine("This table has already been inserted.");
-                            //}
-                            return;
-                        }
-                        
                     }
 
+                    for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
+                    {
+                        dbInsertCommand.Parameters[i].Value = null;
+                    }
+
+                    foreach (KeyValuePair<string, string> rowValue in datum)
+                    {
+                        string parameterName = rowValue.Key;
+                        string parameterValue = rowValue.Value;
+                        int columnIndex = currentObjectColumnIndices[parameterName];
+                        dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
+                    }
+
+                    dbInsertCommand.ExecuteNonQuery();
                 }
 
                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
@@ -137,7 +127,7 @@ namespace SoemXmlToSQLite
                 Dictionary<string, int> currentObjectColumnIndices;
                 if (!columnIndices.TryGetValue(parsedFile.Ne + " " + parsedFile.Type, out currentObjectColumnIndices))
                 {
-                    string dbCommandText = $"CREATE TABLE [{parsedFile.Ne + " " + parsedFile.Type}] ({string.Join(",", parsedFile.Headers.Select(p => $"[{p}] TEXT COLLATE NOCASE"))})";
+                    string dbCommandText = $"CREATE TABLE [{parsedFile.Ne + " " + parsedFile.Type}] ({string.Join(",", parsedFile.Headers.Select(p => $"[{p}] NUMBER COLLATE NOCASE"))})";
                     using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
                     {
                         dbCommand.ExecuteNonQuery();
@@ -166,11 +156,12 @@ namespace SoemXmlToSQLite
                     //    dbCommand.ExecuteNonQuery();
                     //}
                 }
+
+                dbTransaction.Commit();
                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
                 parsedFile.logValues.Logs["Load_Duration"] = (stop - start).ToString();
                 parsedFile.logValues.Logs["Target_Table"] = dbConnection.DataSource;
                 Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} for table {target_table}", parsedFile.FilePath, stop, stop - start, dbConnection.FileName);
-                dbTransaction.Commit();
             }
             SoemXmlToDbConverter.LogToTable(parsedFile.logValues, columnIndices);
 
@@ -183,7 +174,8 @@ namespace SoemXmlToSQLite
                 Pooling = false
             };
             var logConnectionString = builder.ConnectionString;
-            var logDBValues = new DBValues("log.sqlite");
+            // var logDBValues = new DBValues("log.sqlite");
+            var logDBValues = DBValues.getDBValues("log.sqlite");
             using (SQLiteConnection logConnection = new SQLiteConnection(logConnectionString))
             {
                 logConnection.Open();
@@ -191,14 +183,14 @@ namespace SoemXmlToSQLite
                 if (!logDBValues.ColumnIndices.ContainsKey("Log"))
                 {
                     columnIndices.Add("Log", new Dictionary<string, int>()); ;
-                    string dbCommandText = $"CREATE TABLE Log ({string.Join(",", logValues.Logs.Select(l => $"[{l.Key}] TEXT COLLATE NOCASE "))})";
+                    string dbCommandText = $"CREATE TABLE Log ({string.Join(",", logValues.Logs.Select(l => $"[{l.Key}] NUMBER COLLATE NOCASE "))})";
 
 
-                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, logConnection)) 
+                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, logConnection))
                     {
-                        dbCommand.ExecuteNonQuery(); 
+                        dbCommand.ExecuteNonQuery();
                     }
-                        
+
 
                 }
                 else

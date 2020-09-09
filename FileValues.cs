@@ -16,17 +16,23 @@ namespace SoemXmlToSQLite
             }
             Console.WriteLine("Enter the directory name that you want to save to SQLite, press ENTER to save all files in the directory.");
             string selectedFolder = Console.ReadLine();
+            if (!Directory.Exists(Path.Join(inputPath, $"{selectedFolder}"))){
+                Console.WriteLine("-- Selected directory does not exist -- Try Again. ");
+                Log.Error(new FileNotFoundException(), "This directory {Full_File_Path} does not exist.", Path.Join(inputPath, $"{selectedFolder}"));
+                return GetFileValue(inputPath);
+            }
             return selectedFolder;
         }
 
-        public static void CallConverter(string selectedFolder, Options options, SQLiteConnection dbConnection, string dbFilePath)
+        public static void CallConverter(string selectedFolder, Options options, SQLiteConnection dbConnection)
         {
             
             if (Directory.Exists(Path.Join(options.InputPath, $"{selectedFolder}")))
             {
                 foreach (string filePath in Directory.EnumerateFiles(Path.Join(options.InputPath, $"{selectedFolder}"), options.SourceFileMask, SearchOption.AllDirectories))
                 {
-                    var values = new DBValues(dbFilePath);
+                    //var values = new DBValues(dbFilePath);
+                    var values = DBValues.getDBValues(options.DbFilePath);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
 

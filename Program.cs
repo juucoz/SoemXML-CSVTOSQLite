@@ -36,7 +36,10 @@ namespace SoemXmlToSQLite
 
 
             var opts = Options.GetOptions(args);
-
+            if (opts is null)
+            {
+                return;
+            }
             //string inputPath = @"C:\Users\ata.akcay\Desktop\inputFile";
             //string sourceFileMask = "*.csv";
             //string dbFilePath = "soem6.sqlite";
@@ -52,16 +55,16 @@ namespace SoemXmlToSQLite
             string sourceFileMask = opts.SourceFileMask;
             string dbFilePath = opts.DbFilePath;
 
-            Console.WriteLine(inputPath + sourceFileMask + dbFilePath);
 
-            DBValues dbvalues = new DBValues(dbFilePath);
+            //DBValues dbvalues = new DBValues(dbFilePath);
+            var dbvalues = DBValues.getDBValues(dbFilePath);
 
             using (SQLiteConnection dbConnection = new SQLiteConnection(dbvalues.DbConnectionString))
             {
                 dbConnection.Open();
-                var selectedFolder = FileValues.GetFileValue(inputPath);
+                var selectedFolder = FileValues.GetFileValue(opts.InputPath);
                 StopwatchProxy.Instance.Stopwatch.Start();
-                FileValues.CallConverter(selectedFolder, opts, dbConnection, dbFilePath);
+                FileValues.CallConverter(selectedFolder, opts, dbConnection);
 
             }
             Log.CloseAndFlush();
