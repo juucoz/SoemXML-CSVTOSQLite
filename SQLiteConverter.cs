@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace SoemXmlToSQLite
 {
-    internal static class SoemXmlToDbConverter
+    internal static class SQLiteConverter
     {
         public static void Convert(
             TextFileParseOutput parsedFile,
@@ -107,7 +107,7 @@ namespace SoemXmlToSQLite
                 Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} with {success_failure} for table {target_table}", parsedFile.FilePath, stop, stop - start, $"{parsedFile.Data.Count}" + "/" + $"{counter}", dbConnection.FileName);
                 dbTransaction.Commit();
             }
-            SoemXmlToDbConverter.LogToTable(parsedFile.logValues, columnIndices);
+            SQLiteConverter.LogToTable(parsedFile.logValues, columnIndices);
         }
 
 
@@ -163,7 +163,7 @@ namespace SoemXmlToSQLite
                 parsedFile.logValues.Logs["Target_Table"] = dbConnection.DataSource;
                 Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} for table {target_table}", parsedFile.FilePath, stop, stop - start, dbConnection.FileName);
             }
-            SoemXmlToDbConverter.LogToTable(parsedFile.logValues, columnIndices);
+            SQLiteConverter.LogToTable(parsedFile.logValues, columnIndices);
 
         }
         private static void LogToTable(LogValues logValues, Dictionary<string, Dictionary<string, int>> columnIndices)
