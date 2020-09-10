@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -11,6 +12,7 @@ namespace SoemXmlToSQLite
     {
         public TextFileParseOutput Parse(FileStream input)
         {
+            var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             TextFileParseOutput _defaultResult = new TextFileParseOutput();
             string fileName = Path.GetFileName(input.Name);
             SetFileValues(_defaultResult, fileName);
@@ -51,10 +53,14 @@ namespace SoemXmlToSQLite
                         string parameterValue = xAttribute.Value;
                         parameters.Add(parameterName, parameterValue);
                     }
+
                     _defaultResult.Data.Add(parameters);
                     xmlReader.Skip();
                     
                 }
+                var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                _defaultResult.logValues = new LogValues(input.Name, start, stop, stop - start, _defaultResult.Data.Count, 0, 0, "");
+
                 return _defaultResult;
             }
         }
@@ -62,6 +68,7 @@ namespace SoemXmlToSQLite
         {
             try
             {
+                _defaultResult.FilePath = fileName;
                 _defaultResult.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
                 _defaultResult.Class = Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
                 _defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
@@ -72,6 +79,7 @@ namespace SoemXmlToSQLite
             }
             catch (FormatException e)
             {
+                Log.Error(e,"File {File_Name} couldn't be parsed by any DateTime formats.",fileName);
                 Console.WriteLine(e.Message);
             }
         }

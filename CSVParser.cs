@@ -5,16 +5,18 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using Serilog;
 
 namespace SoemXmlToSQLite
 {
 
     class CSVParser : IParser
     {
-        public System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+       // public System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private string[] _headers;
         private TextFileParseOutput _defaultResult;
         int skippedLineCounter = 0;
+        
 
         [DefaultValue(",")]
         public string SourceSeparator { get; set; } = ",";
@@ -27,13 +29,18 @@ namespace SoemXmlToSQLite
 
         [DefaultValue(0)]
         public int TypeIndex { get; set; }
+        
+        [DefaultValue(0)]
+        public int NeIndex { get; set; }
+        
+        [DefaultValue(0)]
+        public int DateIndex { get; set; }
         public TextFileParseOutput Parse(FileStream input)
         {
-            Console.WriteLine("Watch started");
-            watch.Start();
+            var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+            char[] separators = SourceSeparator.ToCharArray();
             _defaultResult = new TextFileParseOutput();
-            string fileName = Path.GetFileName(input.Name);
-            SetFileValues(_defaultResult, fileName);
+            SetFileValues(_defaultResult, input.Name);
             StreamReader reader = new StreamReader(input);
 
             string unTrimmedHeaders = "Timestamp" + SourceSeparator + ReadHeaders(input);
@@ -51,11 +58,12 @@ namespace SoemXmlToSQLite
                 string line = _defaultResult.Timestamp + SourceSeparator + reader.ReadLine();
 
 
-                ParseLine(line, _defaultResult);
+                ParseLine(line, _defaultResult,separators);
             }
             Console.WriteLine(input.Position);
+            var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
-            Console.WriteLine("The time for this parse is  " + watch.ElapsedMilliseconds);
+            _defaultResult.logValues = new LogValues(input.Name,start,stop,stop-start,_defaultResult.Data.Count - skippedLineCounter,skippedLineCounter,0,""); 
             return _defaultResult;
         }
 
@@ -97,10 +105,9 @@ namespace SoemXmlToSQLite
         ///
         /// </summary>
         /// <param name="line"></param>
-        protected void ParseLine(string line, TextFileParseOutput _defaultResult)
+        protected void ParseLine(string line, TextFileParseOutput _defaultResult, char[] separators)
         {
             string[] dataRow;
-            char[] separators = SourceSeparator.ToCharArray();
             string target;
 
             target = line.Trim().Replace("'", "''");
@@ -118,7 +125,6 @@ namespace SoemXmlToSQLite
             }
             else
             {
-
                 dataRow = target.Split(separators);
             }
 
@@ -134,46 +140,56 @@ namespace SoemXmlToSQLite
             }
             else
             {
+                Log.Error("Invalid value count in row {Errow_Row}", _defaultResult.Data.Count + HeaderLine + 1 + skippedLineCounter);
                 Console.WriteLine($"Invalid value count in row {_defaultResult.Data.Count + HeaderLine + 1 + skippedLineCounter } ");
                 skippedLineCounter++;
             }
-
-
+            
+            
 
         }
-        private void SetFileValues(TextFileParseOutput _defaultResult, string fileName)
+        private void SetFileValues(TextFileParseOutput _defaultResult, string filePath)
         {
-
+            string fileName = Path.GetFileName(filePath);
             try
             {
-                _defaultResult.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
-                _defaultResult.Type = Regex.Matches(fileName, @"(?<=_)(.*?)(?=_)")[TypeIndex].Value;
+                _defaultResult.FilePath = filePath;
+                string fileNameWoutExc = Path.GetFileNameWithoutExtension(filePath);
+                var values = Regex.Matches(fileNameWoutExc, @"[^_\s][^_]*[^_\s]*");
 
-                if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}h\d{2}m\d{2}sZ").Value, "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", null, DateTimeStyles.None, out DateTime v))
-                {
-                    _defaultResult.Timestamp = v.ToString("u");
-                }
+                _defaultResult.Ne = values[NeIndex].Value;
+                _defaultResult.Type = values[TypeIndex].Value;
 
-                else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}").Value, "yyyy-MM-dd_HH-mm-ss", null, DateTimeStyles.None, out v))
-                {
-                    _defaultResult.Timestamp = v.ToString("u");
-                }
-                else if (DateTime.TryParseExact(Regex.Match(fileName, @"\d{4}\d{2}\d{2}\d{2}\d{2}").Value, "yyyyMMddHHmm", null, DateTimeStyles.None, out v))
-                {
-                    _defaultResult.Timestamp = v.ToString("u");
-                }
-                else
-                {
-                    throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
-                }
+                string date = values[DateIndex - 1].Value + "_" + values[DateIndex].Value;
+                string dateBackup = values[DateIndex].Value;
+                string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ" };
+                ParseDate(date,dateBackup,formatStrings,fileName);
+                
             }
             catch (ArgumentOutOfRangeException a)
             {
+                Log.Error(a,"Argument Out of Range Exception occured.");
                 Console.WriteLine(a.Message);
             }
             catch (FormatException e)
             {
+                Log.Error(e,"File, {File_Name} couldn't be parsed by any DateTime formats.", fileName );
                 Console.WriteLine(e.Message);
+            }
+        }
+        private void ParseDate(string date,string dateBackup, string[] formats,string fileName)
+        {
+            if (DateTime.TryParseExact(date, formats, null, DateTimeStyles.None, out DateTime v))
+            {
+                _defaultResult.Timestamp = v.ToString("u");
+            }
+            else if (DateTime.TryParseExact(dateBackup, formats, null, DateTimeStyles.None, out v))
+            {
+                _defaultResult.Timestamp = v.ToString("u");
+            }
+            else
+            {
+                throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
             }
         }
     }
