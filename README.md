@@ -1,6 +1,6 @@
-# SoemXMLToSQLite
+# PiTnProcessor
 
-SoemXMLToSQLite is a .NET Core console app for reading appropriate information 
+PiTnProcessor is a .NET Core console app for reading appropriate information 
 from XML and CSV files and saving it in a SQLite file.
 
 # Installation
@@ -15,7 +15,7 @@ from XML and CSV files and saving it in a SQLite file.
 
 ## Usage
 ```
-./SoemXMLToSQLite -i inputPath -m sourceFileMask -d dbFilePath
+./PiTnProcessor -i inputPath -m sourceFileMask -d dbFilePath
 ```
 #### inputPath 
 This is the path that the files will be searched.
@@ -29,13 +29,13 @@ This is the path that the database will be created.
 Move into the publish folder of the installed artifact.
 ## Linux-x64 --self-contained
 ```
-./SoemXMLToSQLite -i /home/ata/Downloads/inputFile -m *.xml -d soem.sqlite
+./PiTnProcessor -i /home/ata/Downloads/inputFile -m *.xml -d soem.sqlite
 ```
 
 ## Win10-x64 --self-contained
 
 ```
-.\SoemXMLToSQLite.exe -i "C:\Users\ata.akcay\Desktop\inputFile" -m *.csv -d soem.sqlite
+.\PiTnProcessor.exe -i "C:\Users\ata.akcay\Desktop\inputFile" -m *.csv -d soem.sqlite
 ```
 
 
