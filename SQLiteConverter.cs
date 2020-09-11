@@ -5,7 +5,7 @@ using System.Data.Common;
 using System.Data.SQLite;
 using System.Linq;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     internal static class SQLiteConverter
     {

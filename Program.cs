@@ -5,7 +5,7 @@ using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     public class StopwatchProxy
     {

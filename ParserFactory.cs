@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     abstract class ParserFactory
     {

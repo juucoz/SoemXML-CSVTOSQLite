@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using Serilog;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
 
     class CSVParser : IParser
