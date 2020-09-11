@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     public class LogValues
     {

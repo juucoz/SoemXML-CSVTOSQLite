@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     class XMLParser : IParser
     {

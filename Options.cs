@@ -2,7 +2,7 @@
 using System;
 using System.Linq;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     class Options
     {

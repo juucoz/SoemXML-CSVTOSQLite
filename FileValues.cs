@@ -3,7 +3,7 @@ using System;
 using System.Data.SQLite;
 using System.IO;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     class FileValues
     {
@@ -49,7 +49,7 @@ namespace SoemXmlToSQLite
                             var parsedFile = csvparser.Parse(stream);
                             var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
                             Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
-                            SoemXmlToDbConverter.Convert(
+                            SQLiteConverter.Convert(
                                 parsedFile,
                                 dbConnection,
                                 values.ColumnIndices
@@ -68,7 +68,7 @@ namespace SoemXmlToSQLite
                                 var parsedFile = xmlparser.Parse(stream);
                                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
                                 Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
-                                SoemXmlToDbConverter.Convert(
+                                SQLiteConverter.Convert(
                                     parsedFile,
                                     dbConnection,
                                     values.ColumnIndices,

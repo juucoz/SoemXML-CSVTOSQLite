@@ -4,7 +4,7 @@ using System.Data;
 using System.Data.SQLite;
 using System.Linq;
 
-namespace SoemXmlToSQLite
+namespace PiTnProcessor
 {
     class DBValues
     {
@@ -22,13 +22,13 @@ namespace SoemXmlToSQLite
                 DataSource = dbFilePath,
                 Pooling = false,
                 //DefaultTimeout = 5000,
-                //SyncMode = SynchronizationModes.Off,
-                //JournalMode = SQLiteJournalModeEnum.Memory,
+                SyncMode = SynchronizationModes.Off,
+                JournalMode = SQLiteJournalModeEnum.Memory,
                 //PageSize = 65536,
                 //CacheSize = 16777216,
                 //FailIfMissing = false,
                 //ReadOnly = false
-        };
+            };
 
         dbValues.DbConnectionString = dbConnectionStringBuilder.ConnectionString;
             
