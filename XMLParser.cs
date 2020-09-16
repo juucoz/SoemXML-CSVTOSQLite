@@ -1,6 +1,8 @@
 ﻿using Serilog;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -10,79 +12,124 @@ namespace PiTnProcessor
 {
     class XMLParser : IParser
     {
+        public XmlReader xmlReader { get; set; }
+
+        [DefaultValue(1)]
+        public int DateIndex { get; set; }
+        public string ReadConfig { get; set; }
+        public bool flag = false;
+
+        
+        private TextFileParseOutput _defaultResult;
+
+        public XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Ignore,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            IgnoreWhitespace = true,
+            CheckCharacters = false,
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None
+        };
+
+        public XMLParser()
+        {
+            flag = false;
+        }
+
+        public void setXMLParser(FileStream input)
+        {
+            xmlReader = XmlReader.Create(input, xmlReaderSettings);
+        }
         public TextFileParseOutput Parse(FileStream input)
         {
-            var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-            TextFileParseOutput _defaultResult = new TextFileParseOutput();
+            //var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+            _defaultResult = new TextFileParseOutput();
             string fileName = Path.GetFileName(input.Name);
-            SetFileValues(_defaultResult, fileName);
+            string filePath = input.Name;
 
-            XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
-            {
-                DtdProcessing = DtdProcessing.Ignore,
-                IgnoreComments = true,
-                IgnoreProcessingInstructions = true,
-                IgnoreWhitespace = true,
-                CheckCharacters = false,
-                ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None
-            };
-            using (XmlReader xmlReader = XmlReader.Create(input, xmlReaderSettings))
-            {
-                xmlReader.MoveToContent();
-                while (!xmlReader.EOF)
+            //flag = flag ? true : SetFileValues(_defaultResult, filePath, fileName);
+
+
+
+            XElement xObject = (XElement)XNode.ReadFrom(xmlReader);
+            var rowParam =
+                new Dictionary<string, string>()
                 {
-                    xmlReader.Read();
-                    if (string.Equals(xmlReader.LocalName, "row", StringComparison.Ordinal))
-                    {
-                        break;
-                    }
-                }
-
-                while (string.Equals(xmlReader.LocalName, "row", StringComparison.Ordinal))
+                                {"NE", FileValues.Ne },
+                                {"Timestamp", FileValues.Timestamp }
+                };
+            if (ReadConfig == "row")
+                foreach (var xAttribute in xObject.Attributes())
                 {
-                    XElement xObject = (XElement)XNode.ReadFrom(xmlReader);
-                    Dictionary<string, string> parameters =
-                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                        {
-                                { "NE", _defaultResult.Ne },
-                                { "TIMESTAMP", _defaultResult.Timestamp },
-                        };
-                    foreach (var xAttribute in xObject.Attributes())
-                    {
-                        string parameterName = xAttribute.Name.LocalName;
-                        string parameterValue = xAttribute.Value;
-                        parameters.Add(parameterName, parameterValue);
-                    }
-
-                    _defaultResult.Data.Add(parameters);
-                    xmlReader.Skip();
-                    
+                    string headerValue = xAttribute.Name.ToString();
+                    string dataValue = xAttribute.Value;
+                    rowParam.Add(headerValue, dataValue);
                 }
-                var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                _defaultResult.logValues = new LogValues(input.Name, start, stop, stop - start, _defaultResult.Data.Count, 0, 0, "");
+            else
+            {
+                foreach (var element in xObject.Elements())
+                {
+                    string headerValue = element.Name.LocalName.ToString();
+                    string dataValue = element.Value;
+                    rowParam.Add(headerValue, dataValue);
+                }
+            }
 
-                return _defaultResult;
-            }
+            _defaultResult.RowValues = rowParam;
+
+            //var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+            //_defaultResult.logValues = new LogValues(input.Name, start, stop, stop - start, _defaultResult.Data.Count, 0, 0, "");
+            return _defaultResult;
+
+
+
+
         }
-        private void SetFileValues(TextFileParseOutput _defaultResult, string fileName)
-        {
-            try
-            {
-                _defaultResult.FilePath = fileName;
-                _defaultResult.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
-                _defaultResult.Class = Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
-                _defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
-            }
-            catch (ArgumentOutOfRangeException a)
-            {
-                Console.WriteLine(a.Message);
-            }
-            catch (FormatException e)
-            {
-                Log.Error(e,"File {File_Name} couldn't be parsed by any DateTime formats.",fileName);
-                Console.WriteLine(e.Message);
-            }
-        }
+        //private bool SetFileValues(TextFileParseOutput _defaultResult, string filePath, string fileName)
+        //{
+        //    try
+        //    {
+        //        _defaultResult.FilePath = filePath;
+        //        string fileNameWoutExc = Path.GetFileNameWithoutExtension(filePath);
+        //        var values = Regex.Matches(fileNameWoutExc, @"[^_\s][^_]*[^_\s]*");
+        //        string date = values[DateIndex - 1].Value + "_" + values[DateIndex].Value;
+        //        string dateBackup = values[DateIndex].Value;
+
+        //        _defaultResult.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
+        //        _defaultResult.Class = "SMsaskdla"; //Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
+        //        string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmm" };
+        //        //_defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
+        //        ParseDate(date, dateBackup, formatStrings, fileName);
+        //        return true;
+        //    }
+        //    catch (ArgumentOutOfRangeException a)
+        //    {
+        //        Console.WriteLine(a.Message);
+        //        return false;
+        //    }
+        //    catch (FormatException e)
+        //    {
+        //        Log.Error(e, "File {File_Name} couldn't be parsed by any DateTime formats.", fileName);
+        //        Console.WriteLine(e.Message);
+        //        return false;
+        //    }
+        //}
+        //private void ParseDate(string date, string dateBackup, string[] formats, string fileName)
+        //{
+        //    if (DateTime.TryParseExact(date, formats, null, DateTimeStyles.None, out DateTime v))
+        //    {
+        //        _defaultResult.Timestamp = v.ToString("u");
+        //    }
+        //    else if (DateTime.TryParseExact(dateBackup, formats, null, DateTimeStyles.None, out v))
+        //    {
+        //        _defaultResult.Timestamp = v.ToString("u");
+        //    }
+        //    else
+        //    {
+        //        throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
+        //    }
+        //}
     }
 }
 

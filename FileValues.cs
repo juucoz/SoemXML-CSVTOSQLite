@@ -1,12 +1,20 @@
 ﻿using Serilog;
 using System;
 using System.Data.SQLite;
+using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace PiTnProcessor
 {
-    class FileValues
+    static class FileValues
     {
+        public static string Ne { get; set; }
+        public static string Type { get; set; }
+        public static string Class { get; set; }
+        public static string Timestamp { get; set; }
+        public static string FilePath { get; set; }
+
         public static string GetFileValue(string inputPath)
         {
             string[] dirNames = Directory.GetDirectories(inputPath);
@@ -35,27 +43,29 @@ namespace PiTnProcessor
                     var values = DBValues.getDBValues(options.DbFilePath);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
+                    FileValues.SetFileValues(parser, filePath, fileName);
+                    
 
                     var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
                     Log.Information("Parse start time for {Full_File_Path} is {Parse_Start_Time}", filePath, start);
 
-                    if (parser is CSVParser csvparser)
-                    {
+                    //if (parser is CSVParser csvparser)
+                    //{
 
-                        Console.WriteLine(fileName);
+                    //    Console.WriteLine(fileName);
 
-                        using (FileStream stream = File.OpenRead(filePath))
-                        {
-                            var parsedFile = csvparser.Parse(stream);
-                            var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                            Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
-                            SQLiteConverter.Convert(
-                                parsedFile,
-                                dbConnection,
-                                values.ColumnIndices
-                        );
-                        }
-                    }
+                    //    using (FileStream stream = File.OpenRead(filePath))
+                    //    {
+                    //        var parsedFile = csvparser.Parse(stream);
+                    //        var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                    //        Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
+                    //        SQLiteConverter.Convert(
+                    //            parsedFile,
+                    //            dbConnection,
+                    //            values.ColumnIndices
+                    //    );
+                    //    }
+                    //}
 
                     if (parser is XMLParser xmlparser)
                     {
@@ -65,11 +75,13 @@ namespace PiTnProcessor
                             
                             using (FileStream stream = File.OpenRead(filePath))
                             {
-                                var parsedFile = xmlparser.Parse(stream);
+                                xmlparser.setXMLParser(stream);
+                                
                                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
                                 Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
                                 SQLiteConverter.Convert(
-                                    parsedFile,
+                                    xmlparser,
+                                    stream,
                                     dbConnection,
                                     values.ColumnIndices,
                                     values.DbInsertCommandCache);
@@ -86,6 +98,47 @@ namespace PiTnProcessor
                 return;
             }
 
+        }
+        private static void SetFileValues(IParser parser, string filePath, string fileName)
+        {
+            try
+            {
+                FileValues.FilePath = filePath;
+                string fileNameWoutExc = Path.GetFileNameWithoutExtension(filePath);
+                var values = Regex.Matches(fileNameWoutExc, @"[^_\s][^_]*[^_\s]*");
+                string date = values[parser.DateIndex - 1].Value + "_" + values[parser.DateIndex].Value;
+                string dateBackup = values[parser.DateIndex].Value;
+
+                FileValues.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
+                FileValues.Class = fileNameWoutExc; //Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
+                string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmmETH-TRAF" };
+                //_defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
+                ParseDate(date, dateBackup, formatStrings, fileName);
+            }
+            catch (ArgumentOutOfRangeException a)
+            {
+                Console.WriteLine(a.Message);
+            }
+            catch (FormatException e)
+            {
+                Log.Error(e, "File {File_Name} couldn't be parsed by any DateTime formats.", fileName);
+                Console.WriteLine(e.Message);
+            }
+        }
+        private static void ParseDate(string date, string dateBackup, string[] formats, string fileName)
+        {
+            if (DateTime.TryParseExact(date, formats, null, DateTimeStyles.None, out DateTime v))
+            {
+                FileValues.Timestamp = v.ToString("u");
+            }
+            else if (DateTime.TryParseExact(dateBackup, formats, null, DateTimeStyles.None, out v))
+            {
+                FileValues.Timestamp = v.ToString("u");
+            }
+            else
+            {
+                throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
+            }
         }
     }
 }
