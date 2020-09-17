@@ -40,20 +40,32 @@ namespace PiTnProcessor
             //    }
             //    return parser;
             //}
-            if(Path.GetExtension(filePath) == ".xml")
+            if (Path.GetExtension(filePath) == ".xml")
             {
                 XMLParser parser = new XMLParser();
-                parser.DateIndex = 1;
-                if (fileName.Contains("TRAF_MEDIA"))
+                parser.DateIndex = new int[] {6, 7};
+                parser.NeIndex = new int[] { 0 };
+                parser.TypeIndex = new int[] {1, 2, 3, 4, 5};
+                parser.ReadConfig = "row";
+
+                if (fileName.Contains("TRAF_"))
                 {
-                    parser.ReadConfig = "equipment.MediaIndependentStatsLogRecord";
+                    parser.DateIndex = new int[] { 0, 1 };
+                    parser.NeIndex = new int[] { 4 };
+                    parser.TypeIndex = new int[] { 1, 2, 3 };
+                    if (fileName.Contains("TRAF_MEDIA"))
+                    {
+                        parser.ReadConfig = "equipment.MediaIndependentStatsLogRecord";
+
+                    }
+                    else if (fileName.Contains("TRAF_PORT"))
+                    {
+                        parser.ReadConfig = "equipment.PortNetEgressStatsLogRecord";
+                    }
+                    else
+                        parser.ReadConfig = "row";
+                    return parser;
                 }
-                else if (fileName.Contains("TRAF_PORT"))
-                {
-                    parser.ReadConfig = "equipment.PortNetEgressStatsLogRecord";
-                }
-                else
-                    parser.ReadConfig =  "row";
                 return parser;
             }
             return null;

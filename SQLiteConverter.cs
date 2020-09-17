@@ -22,118 +22,119 @@ namespace PiTnProcessor
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
                 var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-               // Log.Information(@"SQLiteInsert start time for {Full_File_Path} is {Write_Start_Time} for table {target_table}", parsedFile.FilePath, start, dbConnection.FileName);
+                // Log.Information(@"SQLiteInsert start time for {Full_File_Path} is {Write_Start_Time} for table {target_table}", parsedFile.FilePath, start, dbConnection.FileName);
 
                 XmlReaderSettings xmlReaderSettings = SQLiteConverter.StartXmlReader();
-                
-                    using (parser.xmlReader)
+
+                using (parser.xmlReader)
+                {
+                    parser.xmlReader.MoveToContent();
+                    while (!parser.xmlReader.EOF)
                     {
-                        parser.xmlReader.MoveToContent();
-                        while (!parser.xmlReader.EOF)
+                        parser.xmlReader.Read();
+                        if (string.Equals(parser.xmlReader.LocalName, parser.ReadConfig, StringComparison.OrdinalIgnoreCase))
                         {
-                            parser.xmlReader.Read();
-                            if (string.Equals(parser.xmlReader.LocalName, parser.ReadConfig, StringComparison.OrdinalIgnoreCase))
-                            {
-                                break;
-                            }
+                            break;
                         }
+                    }
+
+                    while (string.Equals(parser.xmlReader.LocalName, parser.ReadConfig, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parsedRow = parser.Parse(stream);
+
                         
-                        while (string.Equals(parser.xmlReader.LocalName,parser.ReadConfig, StringComparison.OrdinalIgnoreCase))
-                        { 
-                            var parsedRow = parser.Parse(stream);
-                            int counter = 0;
-
-                            Dictionary<string, int> currentObjectColumnIndices;
-                            if (!columnIndices.TryGetValue(FileValues.Class, out currentObjectColumnIndices))
-                            {
-                                currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                                int columnIndex = 0;
-
-                                foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
-                                {
-                                    string parameterName = rowValue.Key;
-                                    string parameterValue = rowValue.Value;
-                                    currentObjectColumnIndices.Add(parameterName, columnIndex);
-                                    columnIndex++;
-                                }
-                                columnIndices.Add(FileValues.Class, currentObjectColumnIndices);
-                                string dbCommandText = $"CREATE TABLE {FileValues.Class} ( {string.Join(",", parsedRow.RowValues.Select(p => $"[{p.Key}] NUMBER COLLATE NOCASE"))})";
-                                using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                                {
-                                    dbCommand.ExecuteNonQuery();
-                                }
-                            }
-                            else
-                            {
-                                int columnIndex = 0;
-                                foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
-                                {
-                                    string parameterName = rowValue.Key;
-
-
-                                    if (!currentObjectColumnIndices.TryGetValue(parameterName, out columnIndex))
-                                    {
-                                        string dbCommandText = $"ALTER TABLE {FileValues.Class} ADD [{parameterName}] NUMBER COLLATE NOCASE";
-                                        using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                                        {
-                                            dbCommand.ExecuteNonQuery();
-
-                                        }
-                                        Log.Information($"A new column {parameterName} is added to Table {FileValues.Class}");
-                                        currentObjectColumnIndices.Add(parameterName, currentObjectColumnIndices.Count);
-                                    }
-                                    columnIndex++;
-                                }
-                            }
-                            SQLiteCommand dbInsertCommand = new SQLiteCommand(dbConnection);
-                            if (!dbInsertCommandCache.TryGetValue(FileValues.Class, out dbInsertCommand))
-                            {
-                                dbInsertCommand = new SQLiteCommand($"INSERT INTO [{FileValues.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
-                                for (int i = 0; i < currentObjectColumnIndices.Count; i++)
-                                    dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                                dbInsertCommandCache.Add(FileValues.Class, dbInsertCommand);
-                            }
-                            else
-                            {
-                                dbInsertCommand.Connection = dbConnection;
-                                if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
-                                {
-                                    dbInsertCommand.CommandText = $"INSERT INTO [{FileValues.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})";
-                                    int numberOfParametersToAdd = currentObjectColumnIndices.Count - dbInsertCommand.Parameters.Count;
-                                    for (int i = 0; i < numberOfParametersToAdd; i++)
-                                    {
-                                        dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                                    }
-                                }
-
-                            }
-
-                            for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
-                            {
-                                dbInsertCommand.Parameters[i].Value = null;
-                            }
+                        Dictionary<string, int> currentObjectColumnIndices;
+                        if (!columnIndices.TryGetValue(FileValues.Class, out currentObjectColumnIndices))
+                        {
+                            currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                            int columnIndex = 0;
 
                             foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
                             {
                                 string parameterName = rowValue.Key;
                                 string parameterValue = rowValue.Value;
-                                int columnIndex = currentObjectColumnIndices[parameterName];
-                                dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
+                                currentObjectColumnIndices.Add(parameterName, columnIndex);
+                                columnIndex++;
                             }
+                            columnIndices.Add(FileValues.Class, currentObjectColumnIndices);
+                            string dbCommandText = $"CREATE TABLE {FileValues.Class} ( {string.Join(",", parsedRow.RowValues.Select(p => $"[{p.Key}] NUMBER COLLATE NOCASE"))})";
+                            using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
+                            {
 
-                            dbInsertCommand.ExecuteNonQuery();
+                                dbCommand.ExecuteNonQuery();
+                            }
+                        }
+                        else
+                        {
+                            int columnIndex = 0;
+                            foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
+                            {
+                                string parameterName = rowValue.Key;
 
+
+                                if (!currentObjectColumnIndices.TryGetValue(parameterName, out columnIndex))
+                                {
+                                    string dbCommandText = $"ALTER TABLE {FileValues.Class} ADD [{parameterName}] NUMBER COLLATE NOCASE";
+                                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
+                                    {
+                                        dbCommand.ExecuteNonQuery();
+
+                                    }
+                                    Log.Information($"A new column {parameterName} is added to Table {FileValues.Class}");
+                                    currentObjectColumnIndices.Add(parameterName, currentObjectColumnIndices.Count);
+                                }
+                                columnIndex++;
+                            }
+                        }
+                        SQLiteCommand dbInsertCommand = new SQLiteCommand(dbConnection);
+                        if (!dbInsertCommandCache.TryGetValue(FileValues.Class, out dbInsertCommand))
+                        {
+                            dbInsertCommand = new SQLiteCommand($"INSERT INTO [{FileValues.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
+                            for (int i = 0; i < currentObjectColumnIndices.Count; i++)
+                                dbInsertCommand.Parameters.Add(new SQLiteParameter());
+                            dbInsertCommandCache.Add(FileValues.Class, dbInsertCommand);
+                        }
+                        else
+                        {
+                            dbInsertCommand.Connection = dbConnection;
+                            if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
+                            {
+                                dbInsertCommand.CommandText = $"INSERT INTO [{FileValues.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})";
+                                int numberOfParametersToAdd = currentObjectColumnIndices.Count - dbInsertCommand.Parameters.Count;
+                                for (int i = 0; i < numberOfParametersToAdd; i++)
+                                {
+                                    dbInsertCommand.Parameters.Add(new SQLiteParameter());
+                                }
+                            }
 
                         }
 
+                        for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
+                        {
+                            dbInsertCommand.Parameters[i].Value = null;
+                        }
 
-                        var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                        foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
+                        {
+                            string parameterName = rowValue.Key;
+                            string parameterValue = rowValue.Value;
+                            int columnIndex = currentObjectColumnIndices[parameterName];
+                            dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
+                        }
 
-                        //Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} with {success_failure} for table {target_table}", parsedFile.FilePath, stop, stop - start, $"{parsedFile.Data.Count}" + "/" + $"{counter}", dbConnection.FileName);
-                        dbTransaction.Commit();
+                        dbInsertCommand.ExecuteNonQuery();
+
+
                     }
-                    //SQLiteConverter.LogToTable(parsedFile.logValues, columnIndices);
-                
+
+
+                    var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+
+                    //Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} with {success_failure} for table {target_table}", parsedFile.FilePath, stop, stop - start, $"{parsedFile.Data.Count}" + "/" + $"{counter}", dbConnection.FileName);
+
+                }
+                //SQLiteConverter.LogToTable(parsedFile.logValues, columnIndices);
+                dbTransaction.Commit();
             }
         }
 
@@ -243,6 +244,6 @@ namespace PiTnProcessor
             return xmlReaderSettings;
         }
     }
-        }
+}
 
 

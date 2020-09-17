@@ -15,7 +15,10 @@ namespace PiTnProcessor
         public XmlReader xmlReader { get; set; }
 
         [DefaultValue(1)]
-        public int DateIndex { get; set; }
+        public int[] DateIndex { get; set; }
+        public int[] NeIndex { get; set; }
+        public int[] TypeIndex { get; set; }
+
         public string ReadConfig { get; set; }
         public bool flag = false;
 

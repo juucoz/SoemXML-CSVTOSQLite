@@ -3,6 +3,8 @@ using System;
 using System.Data.SQLite;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace PiTnProcessor
@@ -106,14 +108,18 @@ namespace PiTnProcessor
                 FileValues.FilePath = filePath;
                 string fileNameWoutExc = Path.GetFileNameWithoutExtension(filePath);
                 var values = Regex.Matches(fileNameWoutExc, @"[^_\s][^_]*[^_\s]*");
-                string date = values[parser.DateIndex - 1].Value + "_" + values[parser.DateIndex].Value;
-                string dateBackup = values[parser.DateIndex].Value;
+                // string date = values[parser.DateIndex - 1].Value + "_" + values[parser.DateIndex].Value;
+                // string dateBackup = values[parser.DateIndex].Value;
+                string date = string.Join("_",values.Where((item,index)=>parser.DateIndex.Contains(index)));
+                //foreach (var e in parser.DateIndex) { date = string.Append(values[e]); };
 
-                FileValues.Ne = Regex.Match(fileName, @".+?(?=_)").Value;
-                FileValues.Class = fileNameWoutExc; //Regex.Match(fileName, @"(?<=^.+?_).+(?=_\d{8})").Value;
-                string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmmETH-TRAF" };
+                FileValues.Ne = string.Join("_", values.Where((item, index) => parser.NeIndex.Contains(index)));
+                FileValues.Class = string.Join("_", values.Where((item, index) => parser.TypeIndex.Contains(index)))
+                                         .Replace("-", "_").ToLowerInvariant();
+                FileValues.Class = Regex.Replace(FileValues.Class, "[0-9]", "");
+                string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmm","yyyyMMdd_HHmmss"};
                 //_defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
-                ParseDate(date, dateBackup, formatStrings, fileName);
+                ParseDate(date, formatStrings, fileName);
             }
             catch (ArgumentOutOfRangeException a)
             {
@@ -125,13 +131,13 @@ namespace PiTnProcessor
                 Console.WriteLine(e.Message);
             }
         }
-        private static void ParseDate(string date, string dateBackup, string[] formats, string fileName)
+        private static void ParseDate(string date, string[] formats, string fileName)
         {
             if (DateTime.TryParseExact(date, formats, null, DateTimeStyles.None, out DateTime v))
             {
                 FileValues.Timestamp = v.ToString("u");
             }
-            else if (DateTime.TryParseExact(dateBackup, formats, null, DateTimeStyles.None, out v))
+            else if (DateTime.TryParseExact(date = Regex.Replace(date, "[^.0-9_]", ""), formats, null, DateTimeStyles.None, out v))
             {
                 FileValues.Timestamp = v.ToString("u");
             }
