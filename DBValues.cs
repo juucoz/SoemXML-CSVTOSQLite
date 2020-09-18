@@ -14,24 +14,24 @@ namespace PiTnProcessor
         public HashSet<string> ExistingTableNames { get; set; }
 
 
-        public static DBValues getDBValues(string dbFilePath)
+        public static DBValues GetDBValues(string dbFilePath)
         {
             var dbValues = new DBValues();
             var dbConnectionStringBuilder = new SQLiteConnectionStringBuilder
             {
                 DataSource = dbFilePath,
                 Pooling = false,
-                //DefaultTimeout = 5000,
                 SyncMode = SynchronizationModes.Off,
                 JournalMode = SQLiteJournalModeEnum.Memory,
+                //DefaultTimeout = 5000,
                 //PageSize = 65536,
                 //CacheSize = 16777216,
                 //FailIfMissing = false,
                 //ReadOnly = false
             };
 
-        dbValues.DbConnectionString = dbConnectionStringBuilder.ConnectionString;
-            
+            dbValues.DbConnectionString = dbConnectionStringBuilder.ConnectionString;
+
 
             using (SQLiteConnection dbConnection = new SQLiteConnection(dbValues.DbConnectionString))
             {
@@ -48,30 +48,30 @@ namespace PiTnProcessor
                         while (dbReader.Read())
                         {
                             string tableName = dbReader.GetString(0);
-        dbValues.ExistingTableNames.Add(tableName);
+                            dbValues.ExistingTableNames.Add(tableName);
                         }
-}
+                    }
                 }
                 foreach (string tableName in dbValues.ExistingTableNames)
-{
-    var columnNames = new List<string>();
-    using (SQLiteCommand dbCommand = new SQLiteCommand($"pragma table_info([{tableName}])", dbConnection))
-    {
-        using (SQLiteDataReader dbReader = dbCommand.ExecuteReader())
-        {
-            while (dbReader.Read())
-            {
-                string columnName = dbReader.GetString(1);
-                columnNames.Add(columnName);
-            }
-        }
-    }
-    dbValues.ColumnIndices.Add(tableName, columnNames.Select((s, i) => new { s, i }).ToDictionary(o => o.s, o => o.i, StringComparer.OrdinalIgnoreCase));
-    var dbInsertCommand = new SQLiteCommand($"INSERT INTO [{tableName}] VALUES ({string.Join(",", Enumerable.Repeat("?", columnNames.Count))})", dbConnection);
-    for (int i = 0; i < columnNames.Count; i++)
-        dbInsertCommand.Parameters.Add(new SQLiteParameter());
-    dbValues.DbInsertCommandCache.Add(tableName, dbInsertCommand);
-}
+                {
+                    var columnNames = new List<string>();
+                    using (SQLiteCommand dbCommand = new SQLiteCommand($"pragma table_info([{tableName}])", dbConnection))
+                    {
+                        using (SQLiteDataReader dbReader = dbCommand.ExecuteReader())
+                        {
+                            while (dbReader.Read())
+                            {
+                                string columnName = dbReader.GetString(1);
+                                columnNames.Add(columnName);
+                            }
+                        }
+                    }
+                    dbValues.ColumnIndices.Add(tableName, columnNames.Select((s, i) => new { s, i }).ToDictionary(o => o.s, o => o.i, StringComparer.OrdinalIgnoreCase));
+                    var dbInsertCommand = new SQLiteCommand($"INSERT INTO [{tableName}] VALUES ({string.Join(",", Enumerable.Repeat("?", columnNames.Count))})", dbConnection);
+                    for (int i = 0; i < columnNames.Count; i++)
+                        dbInsertCommand.Parameters.Add(new SQLiteParameter());
+                    dbValues.DbInsertCommandCache.Add(tableName, dbInsertCommand);
+                }
 
 
 

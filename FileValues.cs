@@ -42,32 +42,32 @@ namespace PiTnProcessor
                 foreach (string filePath in Directory.EnumerateFiles(Path.Join(options.InputPath, $"{selectedFolder}"), options.SourceFileMask, SearchOption.AllDirectories))
                 {
                     //var values = new DBValues(dbFilePath);
-                    var values = DBValues.getDBValues(options.DbFilePath);
+                    var values = DBValues.GetDBValues(options.DbFilePath);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
                     FileValues.SetFileValues(parser, filePath, fileName);
                     
 
                     var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                    Log.Information("Parse start time for {Full_File_Path} is {Parse_Start_Time}", filePath, start);
 
-                    //if (parser is CSVParser csvparser)
-                    //{
+                    if (parser is CSVParser csvparser)
+                    {
 
-                    //    Console.WriteLine(fileName);
+                        Console.WriteLine(fileName);
 
-                    //    using (FileStream stream = File.OpenRead(filePath))
-                    //    {
-                    //        var parsedFile = csvparser.Parse(stream);
-                    //        var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                    //        Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
-                    //        SQLiteConverter.Convert(
-                    //            parsedFile,
-                    //            dbConnection,
-                    //            values.ColumnIndices
-                    //    );
-                    //    }
-                    //}
+                        using (FileStream stream = File.OpenRead(filePath))
+                        {
+                            var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                            FileValues.SetFileValues(parser, filePath, fileName);
+                            Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
+                            SQLiteConverter.Convert(
+                                csvparser,
+                                stream,
+                                dbConnection,
+                                values.ColumnIndices
+                        );
+                        }
+                    }
 
                     if (parser is XMLParser xmlparser)
                     {
@@ -78,9 +78,8 @@ namespace PiTnProcessor
                             using (FileStream stream = File.OpenRead(filePath))
                             {
                                 xmlparser.setXMLParser(stream);
-                                
+                                FileValues.SetFileValues(parser, filePath, fileName);
                                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                                Log.Information("Parse end time for {Full_File_Path} is {Parse_End_Time} and the duration is {Parse_Duration}", filePath, stop, stop - start);
                                 SQLiteConverter.Convert(
                                     xmlparser,
                                     stream,

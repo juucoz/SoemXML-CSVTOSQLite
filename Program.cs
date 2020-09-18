@@ -57,7 +57,7 @@ namespace PiTnProcessor
 
 
             //DBValues dbvalues = new DBValues(dbFilePath);
-            var dbvalues = DBValues.getDBValues(dbFilePath);
+            var dbvalues = DBValues.GetDBValues(dbFilePath);
 
             using (SQLiteConnection dbConnection = new SQLiteConnection(dbvalues.DbConnectionString))
             {
