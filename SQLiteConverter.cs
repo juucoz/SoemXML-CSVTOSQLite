@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using CommandLine;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -46,7 +47,7 @@ namespace PiTnProcessor
                         var parsedRow = parser.Parse(stream);
 
                         parseTime.Stop();
-                        insertTime.Start();
+
 
 
                         Dictionary<string, int> currentObjectColumnIndices;
@@ -131,7 +132,7 @@ namespace PiTnProcessor
                             dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
                         }
 
-
+                        insertTime.Start();
                         dbInsertCommand.ExecuteNonQuery();
                         insertTime.Stop();
 
@@ -162,51 +163,71 @@ namespace PiTnProcessor
 
         {
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+            var parseTime = new Stopwatch();
+            var insertTime = new Stopwatch();
             Log.Information("SQLiteInsert start time for {Full_File_Path} is {Write_Start_Time} for table {target_table}", FileValues.FilePath, start, dbConnection.FileName);
             Console.WriteLine("Watch for db actions have started");
 
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
-               csvparser.Init(input);
-               var parsedRow = csvparser.Parse(input);
+                csvparser.Init(input);
+                TextFileParseOutput parsedRow = new TextFileParseOutput();
                 Dictionary<string, int> currentObjectColumnIndices;
-                if (!columnIndices.TryGetValue(FileValues.Ne + " " + FileValues.Type, out currentObjectColumnIndices))
+                while (parsedRow != null)
                 {
-                    string dbCommandText = $"CREATE TABLE [{FileValues.Ne + " " + FileValues.Class}] ({string.Join(",", parsedRow.RowValues.Select(p => $"[{p.Key}] NUMBER COLLATE NOCASE"))})";
-                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
+                    parseTime.Start();
+                    parsedRow = csvparser.Parse(input);
+                    parseTime.Stop();
+                    
+                    if (parsedRow is null)
                     {
-                        dbCommand.ExecuteNonQuery();
+                        break;
                     }
-                }
 
-                string text = $"INSERT INTO [{FileValues.Ne + " " + FileValues.Class}] VALUES({string.Join(",", Enumerable.Repeat("?", parsedRow.RowValues.Keys.Count))})";
-                SQLiteCommand command = new SQLiteCommand(text, dbConnection);
-                for (int i = 0; i < parsedRow.RowValues.Count; i++)
-                {
-                    command.Parameters.Add(new SQLiteParameter());
-                }
-               
+                    if (!columnIndices.TryGetValue(FileValues.Ne + " " + FileValues.Class, out currentObjectColumnIndices))
+                    {
+                        columnIndices.Add(FileValues.Ne + " " + FileValues.Class, currentObjectColumnIndices);
+                        string dbCommandText = $"CREATE TABLE [{FileValues.Ne + " " + FileValues.Class}] ({string.Join(",", parsedRow.RowValues.Select(p => $"[{p.Key}] NUMBER COLLATE NOCASE"))})";
+                        using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
+                        {
+                            dbCommand.ExecuteNonQuery();
+                        }
+                    }
+
+                    string text = $"INSERT INTO [{FileValues.Ne + " " + FileValues.Class}] VALUES({string.Join(",", Enumerable.Repeat("?", parsedRow.RowValues.Keys.Count))})";
+                    SQLiteCommand command = new SQLiteCommand(text, dbConnection);
+                    for (int i = 0; i < parsedRow.RowValues.Count; i++)
+                    {
+                        command.Parameters.Add(new SQLiteParameter());
+                    }
+
                     int counter = 0;
                     foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
                     {
                         command.Parameters[counter].Value = rowValue.Value;
                         counter++;
                     }
+                    insertTime.Start();
                     command.ExecuteNonQuery();
-
-                    //string dbInsertText = $"INSERT INTO [{parsedFile.Ne + " " + parsedFile.Type}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
-                    //using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
-                    //{
-                    //    dbCommand.ExecuteNonQuery();
-                    //}
+                    insertTime.Stop();
+                }
+                //string dbInsertText = $"INSERT INTO [{parsedFile.Ne + " " + parsedFile.Type}] VALUES({string.Join(",", datum.Select(d => $"'{d.Value}'"))})";
+                //using (SQLiteCommand dbCommand = new SQLiteCommand(dbInsertText, dbConnection))
+                //{
+                //    dbCommand.ExecuteNonQuery();
+                //}
+                dbTransaction.Commit();
                 
 
-                dbTransaction.Commit();
-                var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                //lv.Logs["Load_Duration"] = (stop - start).ToString();
-                //lv.Logs["Target_Table"] = dbConnection.DataSource;
-                //Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} for table {target_table}", parsedFile.FilePath, stop, stop - start, dbConnection.FileName);
             }
+
+            var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+
+            var lv = new LogValues(input.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
+            SQLiteConverter.LogToTable(lv, columnIndices);
+            //lv.Logs["Target_Table"] = dbConnection.DataSource;
+            //Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} for table {target_table}", parsedFile.FilePath, stop, stop - start, dbConnection.FileName);
+
             //SQLiteConverter.LogToTable(lv, columnIndices);
 
         }

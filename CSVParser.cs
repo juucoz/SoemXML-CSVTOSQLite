@@ -17,7 +17,6 @@ namespace PiTnProcessor
         private StreamReader reader;
         private string[] _headers;
         private char[] separators;
-        private string ReadConfig;
         private TextFileParseOutput _defaultResult;
         int skippedLineCounter = 0;
 
@@ -50,6 +49,10 @@ namespace PiTnProcessor
             reader = new StreamReader(input);
 
             input.Position = 0;
+            for (var space = 1; space <= HeaderLine; space++)
+            {
+                reader.ReadLine();
+            }
 
             return _defaultResult;
         }
@@ -57,23 +60,16 @@ namespace PiTnProcessor
         {
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
-            for (var space = 1; space <= HeaderLine; space++)
-            {
-                reader.ReadLine();
-            }
-
             while (!reader.EndOfStream)
             {
                 string line = FileValues.Timestamp + SourceSeparator + reader.ReadLine();
                 ParseLine(line, _defaultResult, separators);
                 return _defaultResult;
             }
-            
-            Console.WriteLine(input.Position);
             var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
             //_defaultResult.logValues = new LogValues(input.Name,start,stop,stop-start,_defaultResult.Data.Count - skippedLineCounter,skippedLineCounter,0,""); 
-            return _defaultResult;
+            return null;
         }
 
         protected string ReadHeaders(FileStream inp)

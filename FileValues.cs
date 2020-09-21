@@ -115,7 +115,7 @@ namespace PiTnProcessor
                 FileValues.Ne = string.Join("_", values.Where((item, index) => parser.NeIndex.Contains(index)));
                 FileValues.Class = string.Join("_", values.Where((item, index) => parser.TypeIndex.Contains(index)))
                                          .Replace("-", "_").ToLowerInvariant();
-                FileValues.Class = Regex.Replace(FileValues.Class, "[0-9]", "");
+                FileValues.Class = Regex.Replace(FileValues.Class, @"^(\d*)", "");
                 string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmm","yyyyMMdd_HHmmss"};
                 //_defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
                 ParseDate(date, formatStrings, fileName);

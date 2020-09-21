@@ -21,8 +21,6 @@ namespace PiTnProcessor
             {
                 DataSource = dbFilePath,
                 Pooling = false,
-                SyncMode = SynchronizationModes.Off,
-                JournalMode = SQLiteJournalModeEnum.Memory,
                 //DefaultTimeout = 5000,
                 //PageSize = 65536,
                 //CacheSize = 16777216,

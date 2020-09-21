@@ -20,6 +20,7 @@ namespace PiTnProcessor
                     parser.SkipEscape = true;
                     parser.TypeIndex = new int[] { 1 };
                     parser.NeIndex = new int[] { 0 };
+                    parser.DateIndex = new int[]{ 3 };
                 }
                 else if (fileName.Contains("all_300"))
                 {
