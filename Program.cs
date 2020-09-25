@@ -52,7 +52,6 @@ namespace PiTnProcessor
             //};
 
             string inputPath = opts.InputPath;
-            string sourceFileMask = opts.SourceFileMask;
             string dbFilePath = opts.DbFilePath;
 
 
@@ -62,9 +61,9 @@ namespace PiTnProcessor
             using (SQLiteConnection dbConnection = new SQLiteConnection(dbvalues.DbConnectionString))
             {
                 dbConnection.Open();
-                var selectedFolder = FileValues.GetFileValue(opts.InputPath);
+               // var selectedFolder = FileValues.GetFileValue(opts.InputPath);
                 StopwatchProxy.Instance.Stopwatch.Start();
-                FileValues.CallConverter(selectedFolder, opts, dbConnection);
+                FileValues.CallConverter(opts, dbConnection);
 
             }
             Log.CloseAndFlush();

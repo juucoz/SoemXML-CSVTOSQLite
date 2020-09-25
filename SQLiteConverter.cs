@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
@@ -16,12 +17,14 @@ namespace PiTnProcessor
     {
         public static void Convert(
             XMLParser parser,
-            FileStream stream,
+            GZipStream stream,
+            string filePath,
             SQLiteConnection dbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices,
             Dictionary<string, SQLiteCommand> dbInsertCommandCache)
         {
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+            var fileName = Path.GetFileName(filePath);
             var parseTime = new Stopwatch();
             var insertTime = new Stopwatch();
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
@@ -32,20 +35,35 @@ namespace PiTnProcessor
                 using (parser.xmlReader)
                 {
                     parser.xmlReader.MoveToContent();
-                    while (!parser.xmlReader.EOF)
+                    if (parser.ReadConfig == "row")
+                    {
+                        while (!parser.xmlReader.EOF)
+                        {
+                            parser.xmlReader.Read();
+                            if (string.Equals(parser.xmlReader.LocalName, parser.ReadConfig, StringComparison.OrdinalIgnoreCase))
+                            {
+                                break;
+                            }
+                        }
+                        
+                    }
+                    else
                     {
                         parser.xmlReader.Read();
-                        if (string.Equals(parser.xmlReader.LocalName, parser.ReadConfig, StringComparison.OrdinalIgnoreCase))
-                        {
-                            break;
-                        }
                     }
-
-                    while (string.Equals(parser.xmlReader.LocalName, parser.ReadConfig, StringComparison.OrdinalIgnoreCase))
+                    var headElementName = parser.xmlReader.LocalName;
+                    
+                    while (parser.xmlReader.LocalName == headElementName && parser.xmlReader.Depth != 0)
                     {
                         parseTime.Start();
                         var parsedRow = parser.Parse(stream);
-
+                        if(parser.Flag is true)
+                        {
+                                parser.xmlReader.Read();
+                                headElementName = parser.xmlReader.LocalName;
+                                parser.xmlReader.Read();
+                                parsedRow = parser.Parse(stream);
+                        }
                         parseTime.Stop();
 
 
@@ -138,8 +156,8 @@ namespace PiTnProcessor
 
                     }
 
-                    Log.Information("Parse duration for {Full_File_Path} is {Parse_Duration} with {success_failure} for table {target_table}", stream.Name, parseTime.ElapsedMilliseconds, "-", dbConnection.FileName);
-                    Log.Information("SQLiteInsert duration for {Full_File_Path} is {Insert_Duration} with {success_failure} for table {target_table}", stream.Name, insertTime.ElapsedMilliseconds, "-", dbConnection.FileName);
+                   // Log.Information("Parse duration for {Full_File_Path} is {Parse_Duration} with {success_failure} for table {target_table}", stream.Name, parseTime.ElapsedMilliseconds, "-", dbConnection.FileName);
+                   // Log.Information("SQLiteInsert duration for {Full_File_Path} is {Insert_Duration} with {success_failure} for table {target_table}", stream.Name, insertTime.ElapsedMilliseconds, "-", dbConnection.FileName);
 
                 }
 
@@ -149,15 +167,15 @@ namespace PiTnProcessor
 
                 Console.WriteLine("Parse Time : {0} Complete Time: {1} Insert Time : {2}", parseTime.ElapsedMilliseconds, StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds, insertTime.ElapsedMilliseconds);
                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                var lv = new LogValues(stream.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
-                SQLiteConverter.LogToTable(lv, columnIndices);
+               // var lv = new LogValues(stream.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
+                //SQLiteConverter.LogToTable(lv, columnIndices);
             }
         }
 
 
         internal static void Convert(
             CSVParser csvparser,
-            FileStream input,
+            GZipStream input,
             SQLiteConnection dbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices)
 
@@ -223,8 +241,8 @@ namespace PiTnProcessor
 
             var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
-            var lv = new LogValues(input.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
-            SQLiteConverter.LogToTable(lv, columnIndices);
+            //var lv = new LogValues(input.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
+            //SQLiteConverter.LogToTable(lv, columnIndices);
             //lv.Logs["Target_Table"] = dbConnection.DataSource;
             //Log.Information("SQLiteInsert end time for {Full_File_Path} is {Write_End_Time} and the duration is {Insert_Duration} for table {target_table}", parsedFile.FilePath, stop, stop - start, dbConnection.FileName);
 

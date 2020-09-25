@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using Serilog;
 using System.Xml;
+using System.IO.Compression;
 
 namespace PiTnProcessor
 {
@@ -38,7 +39,7 @@ namespace PiTnProcessor
 
         [DefaultValue(0)]
         public int[] DateIndex { get; set; }
-        public TextFileParseOutput Init(FileStream input)
+        public TextFileParseOutput Init(GZipStream input)
         {
             _defaultResult = new TextFileParseOutput();
             separators = SourceSeparator.ToCharArray();
@@ -56,7 +57,7 @@ namespace PiTnProcessor
 
             return _defaultResult;
         }
-        public TextFileParseOutput Parse(FileStream input)
+        public TextFileParseOutput Parse(GZipStream input)
         {
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
@@ -72,7 +73,7 @@ namespace PiTnProcessor
             return null;
         }
 
-        protected string ReadHeaders(FileStream inp)
+        protected string ReadHeaders(GZipStream inp)
         {
             StreamReader rd = new StreamReader(inp, leaveOpen: true);
 

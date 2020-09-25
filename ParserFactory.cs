@@ -45,7 +45,7 @@ namespace PiTnProcessor
                 }
                 return parser;
             }
-            if (Path.GetExtension(filePath) == ".xml")
+            if (Path.GetExtension(filePath) == ".xml" || Path.GetFileName(filePath).Contains(".xml.gz"))
             {
                 XMLParser parser = new XMLParser();
                 parser.DateIndex = new int[] {6, 7};
@@ -58,6 +58,7 @@ namespace PiTnProcessor
                     parser.DateIndex = new int[] { 0, 1 };
                     parser.NeIndex = new int[] { 4 };
                     parser.TypeIndex = new int[] { 1, 2, 3 };
+                    parser.ReadConfig = "-";
                     if (fileName.Contains("TRAF_MEDIA"))
                     {
                         parser.ReadConfig = "equipment.MediaIndependentStatsLogRecord";
@@ -67,10 +68,24 @@ namespace PiTnProcessor
                     {
                         parser.ReadConfig = "equipment.PortNetEgressStatsLogRecord";
                     }
-                    else
-                        parser.ReadConfig = "row";
                     return parser;
                 }
+                if (fileName.Contains("SYS"))
+                {
+                    parser.DateIndex = new int[] { 0, 1 };
+                    parser.NeIndex = new int[] { 4 };
+                    parser.TypeIndex = new int[] { 1, 2, 3 };
+                    parser.ReadConfig = "-";
+                }
+                
+                if (filePath.Contains("YTC-5620SAM") || filePath.Contains("other-xml"))
+                {
+                    parser.DateIndex = new int[] { 0, 1 };
+                    parser.NeIndex = new int[] { 1 };
+                    parser.TypeIndex = new int[] { 1 };
+                    
+                }
+                
                 return parser;
             }
             return null;

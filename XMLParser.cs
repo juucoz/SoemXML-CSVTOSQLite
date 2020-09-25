@@ -1,9 +1,11 @@
-﻿using Serilog;
+﻿using CommandLine;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -20,7 +22,7 @@ namespace PiTnProcessor
         public int[] TypeIndex { get; set; }
 
         public string ReadConfig { get; set; }
-        public bool flag = false;
+        public bool Flag { get; set; }
 
         
         private TextFileParseOutput _defaultResult;
@@ -37,19 +39,17 @@ namespace PiTnProcessor
 
         public XMLParser()
         {
-            flag = false;
+            Flag = false;
         }
 
-        public void setXMLParser(FileStream input)
+        public void setXMLParser(GZipStream input)
         {
             xmlReader = XmlReader.Create(input, xmlReaderSettings);
         }
-        public TextFileParseOutput Parse(FileStream input)
+        public TextFileParseOutput Parse(GZipStream input)
         {
             //var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             _defaultResult = new TextFileParseOutput();
-            string fileName = Path.GetFileName(input.Name);
-            string filePath = input.Name;
 
             //flag = flag ? true : SetFileValues(_defaultResult, filePath, fileName);
 
@@ -73,9 +73,16 @@ namespace PiTnProcessor
             {
                 foreach (var element in xObject.Elements())
                 {
-                    string headerValue = element.Name.LocalName.ToString();
-                    string dataValue = element.Value;
-                    rowParam.Add(headerValue, dataValue);
+                    if (!element.HasElements)
+                    {
+                        string headerValue = element.Name.LocalName.ToString();
+                        string dataValue = element.Value;
+                        rowParam.Add(headerValue, dataValue);
+                    }
+                    else
+                    {          
+                        Flag = true;
+                    }
                 }
             }
 
