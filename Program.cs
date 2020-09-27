@@ -24,8 +24,9 @@ namespace PiTnProcessor
             get { return _stopwatchProxy; }
         }
     }
-    class Program
+    public class Program
     {
+        public static Options opts;
         static void Main(string[] args)
         {
 
@@ -35,7 +36,7 @@ namespace PiTnProcessor
             .CreateLogger();
 
 
-            var opts = Options.GetOptions(args);
+            opts = Options.GetOptions(args);
             if (opts is null)
             {
                 return;
@@ -58,14 +59,14 @@ namespace PiTnProcessor
             //DBValues dbvalues = new DBValues(dbFilePath);
             var dbvalues = DBValues.GetDBValues(dbFilePath);
 
-            using (SQLiteConnection dbConnection = new SQLiteConnection(dbvalues.DbConnectionString))
-            {
-                dbConnection.Open();
-               // var selectedFolder = FileValues.GetFileValue(opts.InputPath);
-                StopwatchProxy.Instance.Stopwatch.Start();
-                FileValues.CallConverter(opts, dbConnection);
+            //using (SQLiteConnection dbConnection = dbvalues.DbConnection)
+            //{
+            //    dbConnection.Open();
+            //   //var selectedFolder = FileValues.GetFileValue(opts.InputPath);
+            //    StopwatchProxy.Instance.Stopwatch.Start();
+            //    FileValues.CallConverter(opts, dbConnection);
 
-            }
+            //}
             Log.CloseAndFlush();
         }
         

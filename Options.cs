@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace PiTnProcessor
 {
-    class Options
+    public class Options
     {
         [Option('i',"input-path", HelpText = "Path of the file which the contexts of will be saved to SQLite", Required = true)]
         public string InputPath { get; set; }

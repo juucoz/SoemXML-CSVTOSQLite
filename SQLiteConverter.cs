@@ -45,24 +45,24 @@ namespace PiTnProcessor
                                 break;
                             }
                         }
-                        
+
                     }
                     else
                     {
                         parser.xmlReader.Read();
                     }
                     var headElementName = parser.xmlReader.LocalName;
-                    
+
                     while (parser.xmlReader.LocalName == headElementName && parser.xmlReader.Depth != 0)
                     {
                         parseTime.Start();
                         var parsedRow = parser.Parse(stream);
-                        if(parser.Flag is true)
+                        if (parser.Flag is true)
                         {
-                                parser.xmlReader.Read();
-                                headElementName = parser.xmlReader.LocalName;
-                                parser.xmlReader.Read();
-                                parsedRow = parser.Parse(stream);
+                            parser.xmlReader.Read();
+                            headElementName = parser.xmlReader.LocalName;
+                            parser.xmlReader.Read();
+                            parsedRow = parser.Parse(stream);
                         }
                         parseTime.Stop();
 
@@ -91,13 +91,12 @@ namespace PiTnProcessor
                         }
                         else
                         {
-                            int columnIndex = 0;
                             foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
                             {
                                 string parameterName = rowValue.Key;
 
 
-                                if (!currentObjectColumnIndices.TryGetValue(parameterName, out columnIndex))
+                                if (!currentObjectColumnIndices.ContainsKey(parameterName))
                                 {
                                     string dbCommandText = $"ALTER TABLE {FileValues.Class} ADD [{parameterName}] NUMBER COLLATE NOCASE";
                                     using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
@@ -108,30 +107,29 @@ namespace PiTnProcessor
                                     Log.Information($"A new column {parameterName} is added to Table {FileValues.Class}");
                                     currentObjectColumnIndices.Add(parameterName, currentObjectColumnIndices.Count);
                                 }
-                                columnIndex++;
+
                             }
                         }
                         // 72 ms
-                        SQLiteCommand dbInsertCommand = new SQLiteCommand(dbConnection);
-                        if (!dbInsertCommandCache.TryGetValue(FileValues.Class, out dbInsertCommand))
+
+                        if (!dbInsertCommandCache.TryGetValue(FileValues.Class, out var dbInsertCommand))
                         {
                             dbInsertCommand = new SQLiteCommand($"INSERT INTO [{FileValues.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
                             for (int i = 0; i < currentObjectColumnIndices.Count; i++)
                                 dbInsertCommand.Parameters.Add(new SQLiteParameter());
                             dbInsertCommandCache.Add(FileValues.Class, dbInsertCommand);
                         }
-
                         else
                         {
-                            dbInsertCommand.Connection = dbConnection;
+                            //  dbInsertCommand.Connection = dbConnection;
                             if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
                             {
-                                dbInsertCommand.CommandText = $"INSERT INTO [{FileValues.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})";
-                                int numberOfParametersToAdd = currentObjectColumnIndices.Count - dbInsertCommand.Parameters.Count;
-                                for (int i = 0; i < numberOfParametersToAdd; i++)
-                                {
+                                dbInsertCommand.Dispose();
+
+                                dbInsertCommand = new SQLiteCommand($"INSERT INTO [{FileValues.Class}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
+                                for (int i = 0; i < currentObjectColumnIndices.Count; i++)
                                     dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                                }
+                                dbInsertCommandCache[FileValues.Class] = dbInsertCommand;
                             }
 
                         }
@@ -156,8 +154,8 @@ namespace PiTnProcessor
 
                     }
 
-                   // Log.Information("Parse duration for {Full_File_Path} is {Parse_Duration} with {success_failure} for table {target_table}", stream.Name, parseTime.ElapsedMilliseconds, "-", dbConnection.FileName);
-                   // Log.Information("SQLiteInsert duration for {Full_File_Path} is {Insert_Duration} with {success_failure} for table {target_table}", stream.Name, insertTime.ElapsedMilliseconds, "-", dbConnection.FileName);
+                    // Log.Information("Parse duration for {Full_File_Path} is {Parse_Duration} with {success_failure} for table {target_table}", stream.Name, parseTime.ElapsedMilliseconds, "-", dbConnection.FileName);
+                    // Log.Information("SQLiteInsert duration for {Full_File_Path} is {Insert_Duration} with {success_failure} for table {target_table}", stream.Name, insertTime.ElapsedMilliseconds, "-", dbConnection.FileName);
 
                 }
 
@@ -167,7 +165,7 @@ namespace PiTnProcessor
 
                 Console.WriteLine("Parse Time : {0} Complete Time: {1} Insert Time : {2}", parseTime.ElapsedMilliseconds, StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds, insertTime.ElapsedMilliseconds);
                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-               // var lv = new LogValues(stream.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
+                // var lv = new LogValues(stream.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
                 //SQLiteConverter.LogToTable(lv, columnIndices);
             }
         }
@@ -196,7 +194,7 @@ namespace PiTnProcessor
                     parseTime.Start();
                     parsedRow = csvparser.Parse(input);
                     parseTime.Stop();
-                    
+
                     if (parsedRow is null)
                     {
                         break;
@@ -235,7 +233,7 @@ namespace PiTnProcessor
                 //    dbCommand.ExecuteNonQuery();
                 //}
                 dbTransaction.Commit();
-                
+
 
             }
 

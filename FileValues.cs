@@ -36,7 +36,7 @@ namespace PiTnProcessor
         //}
 
         public static void CallConverter(Options options, SQLiteConnection dbConnection)
-        {
+         {
             var inputPath = Path.GetDirectoryName(options.InputPath);
             var sourceFileMask = Path.GetFileName(options.InputPath);
             
@@ -45,7 +45,7 @@ namespace PiTnProcessor
                 foreach (string filePath in Directory.EnumerateFiles(inputPath, sourceFileMask))
                 {
                     //var values = new DBValues(dbFilePath);
-                    var values = DBValues.GetDBValues(options.DbFilePath);
+                    var values = DBValues.GetDBValues(dbConnection);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
                    // FileValues.SetFileValues(parser, filePath, fileName);
