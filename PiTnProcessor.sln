@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30225.117
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PiTnProcessor", "PiTnProcessor\PiTnProcessor.csproj", "{7E52606F-B901-4281-B470-F53D55FF411E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SNMP2SQLite", "SNMP2SQLite\SNMP2SQLite.csproj", "{91CE5A79-77E3-4647-B541-D9DE50156201}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E52606F-B901-4281-B470-F53D55FF411E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E52606F-B901-4281-B470-F53D55FF411E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E52606F-B901-4281-B470-F53D55FF411E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E52606F-B901-4281-B470-F53D55FF411E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91CE5A79-77E3-4647-B541-D9DE50156201}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91CE5A79-77E3-4647-B541-D9DE50156201}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91CE5A79-77E3-4647-B541-D9DE50156201}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91CE5A79-77E3-4647-B541-D9DE50156201}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4739667D-79ED-47E6-9CF2-286D31C1ABF8}
+	EndGlobalSection
+EndGlobal
