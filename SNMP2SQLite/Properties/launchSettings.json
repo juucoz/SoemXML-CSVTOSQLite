@@ -2,7 +2,7 @@
   "profiles": {
     "SNMP2SQLite": {
       "commandName": "Project",
-      "commandLineArgs": "inputfile/*.txt.gz soem45.sqlite"
+      "commandLineArgs": "inputfile/*.txt.gz soem256.sqlite"
     }
   }
 }

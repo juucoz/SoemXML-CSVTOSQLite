@@ -36,20 +36,20 @@ namespace PiTnProcessor
         //}
 
         public static void CallConverter(Options options, SQLiteConnection dbConnection)
-         {
+        {
             var inputPath = Path.GetDirectoryName(options.InputPath);
             var sourceFileMask = Path.GetFileName(options.InputPath);
-            
+
             if (Directory.Exists(Path.Join(inputPath)))
             {
-                foreach (string filePath in Directory.EnumerateFiles(inputPath, sourceFileMask))
+                foreach (string filePath in Directory.EnumerateFiles(inputPath, sourceFileMask, SearchOption.AllDirectories))
                 {
                     //var values = new DBValues(dbFilePath);
                     var values = DBValues.GetDBValues(dbConnection);
                     string fileName = Path.GetFileName(filePath);
                     var parser = ParserFactory.CreateParser(filePath);
-                   // FileValues.SetFileValues(parser, filePath, fileName);
-                    
+                    // FileValues.SetFileValues(parser, filePath, fileName);
+
 
                     var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
@@ -67,44 +67,50 @@ namespace PiTnProcessor
                             SQLiteConverter.Convert(
                                 csvparser,
                                 zippedStream,
+                                filePath,
                                 dbConnection,
                                 values.ColumnIndices
                         );
                         }
                     }
 
-                    if (parser is XMLParser xmlparser)
+                    else if (parser is XMLParser xmlparser)
                     {
                         {
                             Console.WriteLine(fileName);
                             // SOEMDSP1_MINI-LINK_AGC_20191023_001500.xml
-                            
+
                             using (FileStream stream = File.OpenRead(filePath))
                             using (GZipStream zippedStream = new GZipStream(stream, CompressionMode.Decompress))
                             {
-                                xmlparser.setXMLParser(zippedStream);
-                                FileValues.SetFileValues(parser, filePath, fileName);
-                                var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-                                SQLiteConverter.Convert(
-                                    xmlparser,
-                                    zippedStream,
-                                    filePath,
-                                    dbConnection,
-                                    values.ColumnIndices,
-                                    values.DbInsertCommandCache);
+                                { 
+                                    xmlparser.setXMLParser(zippedStream);
+                                    FileValues.SetFileValues(parser, filePath, fileName);
+                                    var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
+                                    SQLiteConverter.Convert(
+                                        xmlparser,
+                                        zippedStream,
+                                        filePath,
+                                        dbConnection,
+                                        values.ColumnIndices,
+                                        values.DbInsertCommandCache);
+                                }
+                               
                             }
                         }
                     }
                     else
                     {
+
                         //Log.Error(new FileNotFoundException(), "This directory {Full_File_Path} does not exist.", Path.Join(options.InputPath, $"{selectedFolder}"));
                         Console.WriteLine("This directory doesn't exist.");
+                        return;
                     }
                 }
             }
             else
-            { 
-                
+            {
+
                 //Log.Error(new FileNotFoundException(), "This directory {Full_File_Path} does not exist.", Path.Join(options.InputPath, $"{selectedFolder}"));
                 Console.WriteLine("This directory doesn't exist.");
                 return;
@@ -121,14 +127,14 @@ namespace PiTnProcessor
                 var values = Regex.Matches(fileNameWoutAllExt, @"[^_\s][^_]*[^_\s]*");
                 // string date = values[parser.DateIndex - 1].Value + "_" + values[parser.DateIndex].Value;
                 // string dateBackup = values[parser.DateIndex].Value;
-                string date = string.Join("_",values.Where((item,index)=>parser.DateIndex.Contains(index)));
+                string date = string.Join("_", values.Where((item, index) => parser.DateIndex.Contains(index)));
                 //foreach (var e in parser.DateIndex) { date = string.Append(values[e]); };
 
                 FileValues.Ne = string.Join("_", values.Where((item, index) => parser.NeIndex.Contains(index)));
                 FileValues.Class = string.Join("_", values.Where((item, index) => parser.TypeIndex.Contains(index)))
                                          .Replace("-", "_").ToLowerInvariant();
                 FileValues.Class = Regex.Replace(FileValues.Class, @"^(\d*)", "");
-                string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmm","yyyyMMdd_HHmmss"};
+                string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmm", "yyyyMMdd_HHmmss" };
                 //_defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
                 ParseDate(date, formatStrings, fileName);
             }

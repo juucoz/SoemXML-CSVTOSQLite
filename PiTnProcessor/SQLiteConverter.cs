@@ -174,10 +174,12 @@ namespace PiTnProcessor
         internal static void Convert(
             CSVParser csvparser,
             GZipStream input,
+            string filePath,
             SQLiteConnection dbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices)
 
         {
+            bool statTimeFlag = true;
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             var parseTime = new Stopwatch();
             var insertTime = new Stopwatch();
@@ -223,6 +225,20 @@ namespace PiTnProcessor
                         command.Parameters[counter].Value = rowValue.Value;
                         counter++;
                     }
+                    if (statTimeFlag)
+                    {
+                        try
+                        {
+                            long.TryParse(parsedRow.RowValues["statTime"], out var statTime);
+                            command.Parameters[0].Value = DateTimeOffset.FromUnixTimeMilliseconds(statTime).UtcDateTime;
+                        }
+
+                        catch (KeyNotFoundException k)
+                        {
+                            statTimeFlag = false;
+                        }
+                    }
+                
                     insertTime.Start();
                     command.ExecuteNonQuery();
                     insertTime.Stop();

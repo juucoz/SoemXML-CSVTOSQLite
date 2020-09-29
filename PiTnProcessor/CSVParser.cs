@@ -49,7 +49,7 @@ namespace PiTnProcessor
 
             reader = new StreamReader(input);
 
-            input.Position = 0;
+            //input.Position = 0;
             for (var space = 1; space <= HeaderLine; space++)
             {
                 reader.ReadLine();

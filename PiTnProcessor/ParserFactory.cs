@@ -9,7 +9,7 @@ namespace PiTnProcessor
         {
             string fileName = Path.GetFileName(filePath);
 
-            if (Path.GetExtension(filePath) == ".csv" && Path.GetFileName(filePath).Contains(".csv.gz"))
+            if (Path.GetExtension(filePath) == ".csv" || Path.GetFileName(filePath).Contains(".csv.gz"))
             {
                 CSVParser parser = new CSVParser();
 
