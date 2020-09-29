@@ -67,6 +67,7 @@ namespace PiTnProcessor
                             SQLiteConverter.Convert(
                                 csvparser,
                                 zippedStream,
+                                stream,
                                 filePath,
                                 dbConnection,
                                 values.ColumnIndices
@@ -84,7 +85,7 @@ namespace PiTnProcessor
                             using (GZipStream zippedStream = new GZipStream(stream, CompressionMode.Decompress))
                             {
                                 {
-                                    if (sourceFileMask.Contains(".xml.gz"))
+                                    if (filePath.Contains(".xml.gz"))
                                     {
                                         xmlparser.setXMLParser(zippedStream);
                                     }

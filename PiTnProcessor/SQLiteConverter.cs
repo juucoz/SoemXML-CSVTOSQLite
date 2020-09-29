@@ -175,12 +175,14 @@ namespace PiTnProcessor
 
         internal static void Convert(
             CSVParser csvparser,
-            GZipStream input,
+            GZipStream zippedStream,
+            FileStream stream,
             string filePath,
             SQLiteConnection dbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices)
 
         {
+            bool zippedFlag = true;
             bool statTimeFlag = true;
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             var parseTime = new Stopwatch();
@@ -190,13 +192,29 @@ namespace PiTnProcessor
 
             using (DbTransaction dbTransaction = dbConnection.BeginTransaction())
             {
-                csvparser.Init(input);
+                zippedFlag = zippedFlag ? filePath.Contains("csv.gz") : false;
+                if (zippedFlag)
+                {
+                    csvparser.Init(zippedStream);
+                }
+                else
+                {
+                    csvparser.Init(stream);
+                }
                 TextFileParseOutput parsedRow = new TextFileParseOutput();
                 Dictionary<string, int> currentObjectColumnIndices;
                 while (parsedRow != null)
                 {
                     parseTime.Start();
-                    parsedRow = csvparser.Parse(input);
+                    if (zippedFlag) 
+                    {
+                        parsedRow = csvparser.Parse(zippedStream);
+                    }
+                    else
+                    {
+                        parsedRow = csvparser.Parse(stream);
+                    }
+                    
                     parseTime.Stop();
 
                     if (parsedRow is null)
@@ -231,8 +249,9 @@ namespace PiTnProcessor
                     {
                         try
                         {
-                            long.TryParse(parsedRow.RowValues["statTime"], out var statTime);
-                            command.Parameters[0].Value = DateTimeOffset.FromUnixTimeMilliseconds(statTime).UtcDateTime;
+                            long.TryParse(parsedRow.RowValues["statTime"], out var utcDateTime);
+                            long.TryParse(parsedRow.RowValues["timeCaptured"], out utcDateTime);
+                            command.Parameters[0].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
                         }
 
                         catch (KeyNotFoundException k)

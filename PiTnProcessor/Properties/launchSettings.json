@@ -5,7 +5,7 @@
     },
     "SoemDebug": {
       "commandName": "Project",
-      "commandLineArgs": "-i C:\\Users\\ata.akcay\\Desktop\\inputFile\\*.xml -d soem256.sqlite"
+      "commandLineArgs": "-i C:\\Users\\ata.akcay\\Desktop\\other-xmls\\*.xml -d soem270.sqlite"
     }
   }
 }

@@ -39,7 +39,7 @@ namespace PiTnProcessor
 
         [DefaultValue(0)]
         public int[] DateIndex { get; set; }
-        public TextFileParseOutput Init(GZipStream input)
+        public TextFileParseOutput Init<T>(T input)
         {
             _defaultResult = new TextFileParseOutput();
             separators = SourceSeparator.ToCharArray();
@@ -47,7 +47,7 @@ namespace PiTnProcessor
             string unTrimmedHeaders = "Timestamp" + SourceSeparator + ReadHeaders(input);
             ParseHeaders(unTrimmedHeaders, _defaultResult);
 
-            reader = new StreamReader(input);
+            reader = new StreamReader(input as Stream);
 
             //input.Position = 0;
             for (var space = 1; space <= HeaderLine; space++)
@@ -73,9 +73,9 @@ namespace PiTnProcessor
             return null;
         }
 
-        protected string ReadHeaders(GZipStream inp)
+        protected string ReadHeaders<T>(T inp)
         {
-            StreamReader rd = new StreamReader(inp, leaveOpen: true);
+            StreamReader rd = new StreamReader(inp as Stream, leaveOpen: true);
 
             for (var space = 1; space < HeaderLine; space++)
             {
