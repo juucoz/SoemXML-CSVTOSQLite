@@ -8,7 +8,7 @@ namespace PiTnProcessor
         public int[] DateIndex { get; set; }
         public int[] TypeIndex { get; set; }
         public int[] NeIndex { get; set; }
-        public TextFileParseOutput Parse(GZipStream input);
+        public TextFileParseOutput Parse<T>(T input);
 
     }
 }

@@ -42,11 +42,11 @@ namespace PiTnProcessor
             Flag = false;
         }
 
-        public void setXMLParser(GZipStream input)
+        public void setXMLParser(Stream input)
         {
             xmlReader = XmlReader.Create(input, xmlReaderSettings);
         }
-        public TextFileParseOutput Parse(GZipStream input)
+        public TextFileParseOutput Parse<T>(T input)
         {
             //var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             _defaultResult = new TextFileParseOutput();
@@ -85,7 +85,7 @@ namespace PiTnProcessor
                     }
                 }
             }
-
+            
             _defaultResult.RowValues = rowParam;
 
             //var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;

@@ -83,13 +83,21 @@ namespace PiTnProcessor
                             using (FileStream stream = File.OpenRead(filePath))
                             using (GZipStream zippedStream = new GZipStream(stream, CompressionMode.Decompress))
                             {
-                                { 
-                                    xmlparser.setXMLParser(zippedStream);
+                                {
+                                    if (sourceFileMask.Contains(".xml.gz"))
+                                    {
+                                        xmlparser.setXMLParser(zippedStream);
+                                    }
+                                    else
+                                    {
+                                        xmlparser.setXMLParser(stream);
+                                    }
                                     FileValues.SetFileValues(parser, filePath, fileName);
                                     var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
                                     SQLiteConverter.Convert(
                                         xmlparser,
                                         zippedStream,
+                                        stream,
                                         filePath,
                                         dbConnection,
                                         values.ColumnIndices,

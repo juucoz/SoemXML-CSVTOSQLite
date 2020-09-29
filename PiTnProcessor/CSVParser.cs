@@ -57,7 +57,7 @@ namespace PiTnProcessor
 
             return _defaultResult;
         }
-        public TextFileParseOutput Parse(GZipStream input)
+        public TextFileParseOutput Parse<T>(T input)
         {
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 

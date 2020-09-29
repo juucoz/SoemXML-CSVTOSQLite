@@ -17,12 +17,14 @@ namespace PiTnProcessor
     {
         public static void Convert(
             XMLParser parser,
-            GZipStream stream,
+            GZipStream zippedStream,
+            FileStream stream,
             string filePath,
             SQLiteConnection dbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices,
             Dictionary<string, SQLiteCommand> dbInsertCommandCache)
         {
+            bool zippedFlag = true;
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             var fileName = Path.GetFileName(filePath);
             var parseTime = new Stopwatch();
@@ -56,13 +58,13 @@ namespace PiTnProcessor
                     while (parser.xmlReader.LocalName == headElementName && parser.xmlReader.Depth != 0)
                     {
                         parseTime.Start();
-                        var parsedRow = parser.Parse(stream);
+                        var parsedRow = zippedFlag ? parser.Parse(zippedStream) : parser.Parse(stream);
                         if (parser.Flag is true)
                         {
-                            parser.xmlReader.Read();
+                            
                             headElementName = parser.xmlReader.LocalName;
                             parser.xmlReader.Read();
-                            parsedRow = parser.Parse(stream);
+                            parsedRow = zippedFlag ? parser.Parse(zippedStream) : parser.Parse(stream);
                         }
                         parseTime.Stop();
 
@@ -238,7 +240,7 @@ namespace PiTnProcessor
                             statTimeFlag = false;
                         }
                     }
-                
+
                     insertTime.Start();
                     command.ExecuteNonQuery();
                     insertTime.Stop();
