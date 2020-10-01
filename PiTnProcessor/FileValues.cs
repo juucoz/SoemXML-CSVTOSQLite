@@ -112,8 +112,7 @@ namespace PiTnProcessor
                     {
 
                         //Log.Error(new FileNotFoundException(), "This directory {Full_File_Path} does not exist.", Path.Join(options.InputPath, $"{selectedFolder}"));
-                        Console.WriteLine("This directory doesn't exist.");
-                        return;
+                        Console.WriteLine("This file type does not have a parser.");
                     }
                 }
             }

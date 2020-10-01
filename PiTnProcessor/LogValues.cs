@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace PiTnProcessor
 {
@@ -6,9 +7,10 @@ namespace PiTnProcessor
     {
         public Dictionary<string, string> Logs;
 
-        public LogValues(string full_File_Path, long parse_Start_Time,long parse_End_Time, long parse_Duration,int success, int failure,long load_Duration, string target_Table)
+        public LogValues(string full_File_Path,string log_dateTime, long parse_Start_Time,long parse_End_Time, long parse_Duration,int success, int failure,long load_Duration, string target_Table)
         {
             Logs = new Dictionary<string, string>() { { "Full_File_Path", full_File_Path },
+                { "Log_DateTime", log_dateTime },
                 { "Parse_Start_Time", parse_Start_Time.ToString() } ,
                 { "End_Time", parse_End_Time.ToString() }, 
                 { "Parse_Duration", parse_Duration.ToString() }, 

@@ -24,7 +24,7 @@ namespace PiTnProcessor
         public string ReadConfig { get; set; }
         public bool Flag { get; set; }
 
-        
+
         private TextFileParseOutput _defaultResult;
 
         public XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
@@ -44,6 +44,7 @@ namespace PiTnProcessor
 
         public void setXMLParser(Stream input)
         {
+            //input.Position = 0;
             xmlReader = XmlReader.Create(input, xmlReaderSettings);
         }
         public TextFileParseOutput Parse<T>(T input)
@@ -71,25 +72,26 @@ namespace PiTnProcessor
                 }
             else
             {
-                foreach (var element in xObject.Elements())
-                {
-                    if (!element.HasElements)
+                    foreach (var element in xObject.Elements())
                     {
-                        string headerValue = element.Name.LocalName.ToString();
-                        string dataValue = element.Value;
-                        rowParam.Add(headerValue, dataValue);
+
+                        if (!element.HasElements)
+                        {
+                            string headerValue = element.Name.LocalName.ToString();
+                            string dataValue = element.Value;
+                            rowParam.Add(headerValue, dataValue);
+                        }
+                        else
+                        {
+                            //Flag = true;
+                        }
                     }
-                    else
-                    {          
-                        Flag = true;
-                    }
-                }
             }
-            
+
             _defaultResult.RowValues = rowParam;
 
             //var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
-            //_defaultResult.logValues = new LogValues(input.Name, start, stop, stop - start, _defaultResult.Data.Count, 0, 0, "");
+            //_defaultResult.logValues = new LogValues(input.Name,DateTime.Now.ToString(), start, stop, stop - start, _defaultResult.Data.Count, 0, 0, "");
             return _defaultResult;
 
 

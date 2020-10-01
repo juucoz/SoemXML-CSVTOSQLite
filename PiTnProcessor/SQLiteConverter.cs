@@ -24,6 +24,8 @@ namespace PiTnProcessor
             Dictionary<string, Dictionary<string, int>> columnIndices,
             Dictionary<string, SQLiteCommand> dbInsertCommandCache)
         {
+            bool timeCapturedFlag = true;
+            bool statTimeFlag = true;
             bool zippedFlag = true;
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             var fileName = Path.GetFileName(filePath);
@@ -36,6 +38,7 @@ namespace PiTnProcessor
 
                 using (parser.xmlReader)
                 {
+                    string headElementName;
                     parser.xmlReader.MoveToContent();
                     if (parser.ReadConfig == "row")
                     {
@@ -47,13 +50,68 @@ namespace PiTnProcessor
                                 break;
                             }
                         }
+                        headElementName = parser.xmlReader.LocalName;
 
                     }
                     else
                     {
+                        parser.xmlReader.MoveToContent();
                         parser.xmlReader.Read();
+                        headElementName = parser.xmlReader.LocalName;
+                        if (headElementName == "findToFileResponse" && parser.xmlReader.NodeType.ToString() == "EndElement")
+                        {
+                            return;
+                        }
+                        var innerReader = parser.xmlReader.ReadSubtree();
+
+                        innerReader.ReadToDescendant("children-Set");
+                        if (innerReader.LocalName == "children-Set")
+                        {
+                            innerReader.Read();
+                            if (innerReader.LocalName == "children-Set")
+                            {
+                                if (innerReader.NodeType.ToString() == "EndElement")
+                                {
+                                    stream.Position = 0;
+                                    if (filePath.Contains(".xml.gz"))
+                                    {
+                                        var gzippedstream = new GZipStream(stream, CompressionMode.Decompress);
+                                        parser.setXMLParser(gzippedstream);
+                                    }
+                                    else if (filePath.Contains(".xml"))
+                                    {
+                                        parser.setXMLParser(stream);
+                                    }
+                                    parser.xmlReader.ReadToFollowing(headElementName);
+                                }
+                                else
+                                {
+                                    innerReader.Read();
+                                    headElementName = parser.xmlReader.LocalName;
+                                }
+                            }
+
+                        }
+                        else if (innerReader.LocalName != "children-Set")
+                        {
+                                stream.Position = 0;
+                                if (filePath.Contains(".xml.gz"))
+                                {
+                                    var gzippedstream = new GZipStream(stream, CompressionMode.Decompress);
+                                    parser.setXMLParser(gzippedstream);
+                                }
+                                else if (filePath.Contains(".xml"))
+                                {
+                                    parser.setXMLParser(stream);
+                                }
+                                parser.xmlReader.ReadToFollowing(headElementName);
+                            
+                        }
+                        headElementName = parser.xmlReader.LocalName;
+
+
                     }
-                    var headElementName = parser.xmlReader.LocalName;
+
 
                     while (parser.xmlReader.LocalName == headElementName && parser.xmlReader.Depth != 0)
                     {
@@ -61,7 +119,7 @@ namespace PiTnProcessor
                         var parsedRow = zippedFlag ? parser.Parse(zippedStream) : parser.Parse(stream);
                         if (parser.Flag is true)
                         {
-                            
+
                             headElementName = parser.xmlReader.LocalName;
                             parser.xmlReader.Read();
                             parsedRow = zippedFlag ? parser.Parse(zippedStream) : parser.Parse(stream);
@@ -149,7 +207,31 @@ namespace PiTnProcessor
                             int columnIndex = currentObjectColumnIndices[parameterName];
                             dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
                         }
+                        if (statTimeFlag)
+                        {
+                            try
+                            {
+                                long.TryParse(parsedRow.RowValues["statTime"], out var utcDateTime);
+                                dbInsertCommand.Parameters[1].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
+                            }
 
+                            catch (KeyNotFoundException)
+                            {
+                                statTimeFlag = false;
+                            }
+                        }
+                        if (timeCapturedFlag)
+                        {
+                            try
+                            {
+                                long.TryParse(parsedRow.RowValues["timeCaptured"], out var utcDateTime);
+                                dbInsertCommand.Parameters[1].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
+                            }
+                            catch (KeyNotFoundException)
+                            {
+                                timeCapturedFlag = false;
+                            }
+                        }
                         insertTime.Start();
                         dbInsertCommand.ExecuteNonQuery();
                         insertTime.Stop();
@@ -182,6 +264,7 @@ namespace PiTnProcessor
             Dictionary<string, Dictionary<string, int>> columnIndices)
 
         {
+            bool timeCapturedFlag = true;
             bool zippedFlag = true;
             bool statTimeFlag = true;
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
@@ -206,7 +289,7 @@ namespace PiTnProcessor
                 while (parsedRow != null)
                 {
                     parseTime.Start();
-                    if (zippedFlag) 
+                    if (zippedFlag)
                     {
                         parsedRow = csvparser.Parse(zippedStream);
                     }
@@ -214,7 +297,7 @@ namespace PiTnProcessor
                     {
                         parsedRow = csvparser.Parse(stream);
                     }
-                    
+
                     parseTime.Stop();
 
                     if (parsedRow is null)
@@ -250,13 +333,25 @@ namespace PiTnProcessor
                         try
                         {
                             long.TryParse(parsedRow.RowValues["statTime"], out var utcDateTime);
-                            long.TryParse(parsedRow.RowValues["timeCaptured"], out utcDateTime);
+                            
                             command.Parameters[0].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
                         }
 
-                        catch (KeyNotFoundException k)
+                        catch (KeyNotFoundException)
                         {
                             statTimeFlag = false;
+                        }
+                    }
+                    if (timeCapturedFlag)
+                    {
+                        try
+                        {
+                            long.TryParse(parsedRow.RowValues["timeCaptured"], out var utcDateTime);
+                            command.Parameters[0].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
+                        }
+                        catch (KeyNotFoundException)
+                        {
+                            timeCapturedFlag = false;
                         }
                     }
 

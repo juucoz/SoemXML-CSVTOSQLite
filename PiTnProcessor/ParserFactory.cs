@@ -48,9 +48,9 @@ namespace PiTnProcessor
             if (Path.GetExtension(filePath) == ".xml" || Path.GetFileName(filePath).Contains(".xml.gz"))
             {
                 XMLParser parser = new XMLParser();
-                parser.DateIndex = new int[] {6, 7};
+                parser.DateIndex = new int[] {3, 4};
                 parser.NeIndex = new int[] { 0 };
-                parser.TypeIndex = new int[] {1, 2, 3, 4, 5};
+                parser.TypeIndex = new int[] {1, 2};
                 parser.ReadConfig = "row";
 
                 if (fileName.Contains("TRAF_"))
@@ -70,7 +70,7 @@ namespace PiTnProcessor
                     }
                     return parser;
                 }
-                if (fileName.Contains("SYS"))
+                if (fileName.Contains("SYS")|| fileName.Contains("RRL"))
                 {
                     parser.DateIndex = new int[] { 0, 1 };
                     parser.NeIndex = new int[] { 4 };
@@ -85,7 +85,13 @@ namespace PiTnProcessor
                     parser.TypeIndex = new int[] { 1 };
                     parser.ReadConfig = "-";
                 }
-                
+                if (filePath.Contains("TN_WAN"))
+                {
+                    parser.DateIndex = new int[] { 6, 7 };
+                    parser.NeIndex = new int[] { 0 };
+                    parser.TypeIndex = new int[] { 1, 2, 3, 4, 5 };
+                    parser.ReadConfig = "row";
+                } 
                 return parser;
             }
             return null;
