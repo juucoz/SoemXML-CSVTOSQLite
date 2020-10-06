@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "XCM2SQLite": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\ata.akcay\\Desktop\\xcmfile\\*.xcm.gz soem256.sqlite"
+    }
+  }
+}
