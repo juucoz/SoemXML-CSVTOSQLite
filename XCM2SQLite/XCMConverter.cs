@@ -50,7 +50,6 @@ namespace XCM2SQLite
                             }
                         }
                         headElementName = xcmParser.xmlReader.LocalName;
-
                     }
                     else
                     {
@@ -61,7 +60,7 @@ namespace XCM2SQLite
                             return;
                         }
                         var innerReader = xcmParser.xmlReader.ReadSubtree();
-                        
+
                         headElementName = xcmParser.xmlReader.LocalName;
 
 
@@ -71,8 +70,8 @@ namespace XCM2SQLite
                     while (xcmParser.xmlReader.EOF != true)
                     {
                         parseTime.Start();
-                        var parsedRow = zippedFlag ? xcmParser.Parse(zippedstream) : xcmParser.Parse(stream);
-                        if(parsedRow is null)
+                        var parsedElement = zippedFlag ? xcmParser.Parse(zippedstream) : xcmParser.Parse(stream);
+                        if (parsedElement is null)
                         {
                             break;
                         }
@@ -81,120 +80,124 @@ namespace XCM2SQLite
 
                             headElementName = xcmParser.xmlReader.LocalName;
                             xcmParser.xmlReader.Read();
-                            parsedRow = zippedFlag ? xcmParser.Parse(zippedstream) : xcmParser.Parse(stream);
+                            parsedElement = zippedFlag ? xcmParser.Parse(zippedstream) : xcmParser.Parse(stream);
                         }
                         parseTime.Stop();
 
-                        var currentElementName = xcmParser.xmlReader.LocalName;
-
-                        Dictionary<string, int> currentObjectColumnIndices;
-                        if (!columnIndices.TryGetValue(currentElementName, out currentObjectColumnIndices))
+                        var tableNameIndex = 0;
+                        foreach (var rowValues in parsedElement.RowValues)
                         {
-                            currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                            int columnIndex = 0;
-
-                            foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
+                            var currentElementName = xcmParser.tableNameList[tableNameIndex];
+                            Dictionary<string, int> currentObjectColumnIndices;
+                            if (!columnIndices.TryGetValue(currentElementName, out currentObjectColumnIndices))
                             {
-                                string parameterName = rowValue.Key;
-                                string parameterValue = rowValue.Value;
-                                currentObjectColumnIndices.Add(parameterName, columnIndex);
-                                columnIndex++;
-                            }
-                            columnIndices.Add(currentElementName, currentObjectColumnIndices);
-                            string dbCommandText = $"CREATE TABLE {currentElementName} ( {string.Join(",", parsedRow.RowValues.Select(p => $"[{p.Key}] NUMBER COLLATE NOCASE"))})";
-                            using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                            {
+                                currentObjectColumnIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                                int columnIndex = 0;
 
-                                dbCommand.ExecuteNonQuery();
-                            }
-                        }
-                        else
-                        {
-                            foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
-                            {
-                                string parameterName = rowValue.Key;
-
-
-                                if (!currentObjectColumnIndices.ContainsKey(parameterName))
+                                foreach (KeyValuePair<string, string> rowValue in rowValues)
                                 {
-                                    string dbCommandText = $"ALTER TABLE {currentElementName} ADD [{parameterName}] NUMBER COLLATE NOCASE";
-                                    using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
-                                    {
-                                        dbCommand.ExecuteNonQuery();
-
-                                    }
-                                    Log.Information($"A new column {parameterName} is added to Table {currentElementName}");
-                                    currentObjectColumnIndices.Add(parameterName, currentObjectColumnIndices.Count);
+                                    string parameterName = rowValue.Key;
+                                    string parameterValue = rowValue.Value;
+                                    currentObjectColumnIndices.Add(parameterName, columnIndex);
+                                    columnIndex++;
                                 }
+                                columnIndices.Add(currentElementName, currentObjectColumnIndices);
+                                string dbCommandText = $"CREATE TABLE {currentElementName} ( {string.Join(",", rowValues.Select(p => $"[{p.Key}] NUMBER COLLATE NOCASE"))})";
+                                using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
+                                {
 
+                                    dbCommand.ExecuteNonQuery();
+                                }
                             }
-                        }
-                        // 72 ms
-
-                        if (!dbInsertCommandCache.TryGetValue(currentElementName, out var dbInsertCommand))
-                        {
-                            dbInsertCommand = new SQLiteCommand($"INSERT INTO [{currentElementName}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
-                            for (int i = 0; i < currentObjectColumnIndices.Count; i++)
-                                dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                            dbInsertCommandCache.Add(currentElementName, dbInsertCommand);
-                        }
-                        else
-                        {
-                            //  dbInsertCommand.Connection = dbConnection;
-                            if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
+                            else
                             {
-                                dbInsertCommand.Dispose();
+                                foreach (KeyValuePair<string, string> rowValue in rowValues)
+                                {
+                                    string parameterName = rowValue.Key;
 
+
+                                    if (!currentObjectColumnIndices.ContainsKey(parameterName))
+                                    {
+                                        string dbCommandText = $"ALTER TABLE {currentElementName} ADD [{parameterName}] NUMBER COLLATE NOCASE";
+                                        using (SQLiteCommand dbCommand = new SQLiteCommand(dbCommandText, dbConnection))
+                                        {
+                                            dbCommand.ExecuteNonQuery();
+
+                                        }
+                                        Log.Information($"A new column {parameterName} is added to Table {currentElementName}");
+                                        currentObjectColumnIndices.Add(parameterName, currentObjectColumnIndices.Count);
+                                    }
+
+                                }
+                            }
+                            // 72 ms
+
+                            if (!dbInsertCommandCache.TryGetValue(currentElementName, out var dbInsertCommand))
+                            {
                                 dbInsertCommand = new SQLiteCommand($"INSERT INTO [{currentElementName}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
                                 for (int i = 0; i < currentObjectColumnIndices.Count; i++)
                                     dbInsertCommand.Parameters.Add(new SQLiteParameter());
-                                dbInsertCommandCache[currentElementName] = dbInsertCommand;
+                                dbInsertCommandCache.Add(currentElementName, dbInsertCommand);
+                            }
+                            else
+                            {
+                                //  dbInsertCommand.Connection = dbConnection;
+                                if (dbInsertCommand.Parameters.Count != currentObjectColumnIndices.Count)
+                                {
+                                    dbInsertCommand.Dispose();
+
+                                    dbInsertCommand = new SQLiteCommand($"INSERT INTO [{currentElementName}] VALUES ({string.Join(",", Enumerable.Repeat("?", currentObjectColumnIndices.Count))})", dbConnection);
+                                    for (int i = 0; i < currentObjectColumnIndices.Count; i++)
+                                        dbInsertCommand.Parameters.Add(new SQLiteParameter());
+                                    dbInsertCommandCache[currentElementName] = dbInsertCommand;
+                                }
+
+                            }
+                            // 72 ms
+                            // 30ms
+                            for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
+                            {
+                                dbInsertCommand.Parameters[i].Value = null;
                             }
 
-                        }
-                        // 72 ms
-                        // 30ms
-                        for (int i = 0; i < dbInsertCommand.Parameters.Count; i++)
-                        {
-                            dbInsertCommand.Parameters[i].Value = null;
-                        }
+                            foreach (KeyValuePair<string, string> rowValue in rowValues)
+                            {
+                                string parameterName = rowValue.Key;
+                                string parameterValue = rowValue.Value;
+                                int columnIndex = currentObjectColumnIndices[parameterName];
+                                dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
+                            }
+                            if (statTimeFlag)
+                            {
+                                try
+                                {
+                                    long.TryParse(rowValues["statTime"], out var utcDateTime);
+                                    dbInsertCommand.Parameters[1].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
+                                }
 
-                        foreach (KeyValuePair<string, string> rowValue in parsedRow.RowValues)
-                        {
-                            string parameterName = rowValue.Key;
-                            string parameterValue = rowValue.Value;
-                            int columnIndex = currentObjectColumnIndices[parameterName];
-                            dbInsertCommand.Parameters[columnIndex].Value = parameterValue;
-                        }
-                        if (statTimeFlag)
-                        {
-                            try
-                            {
-                                long.TryParse(parsedRow.RowValues["statTime"], out var utcDateTime);
-                                dbInsertCommand.Parameters[1].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
+                                catch (KeyNotFoundException)
+                                {
+                                    statTimeFlag = false;
+                                }
                             }
+                            if (timeCapturedFlag)
+                            {
+                                try
+                                {
+                                    long.TryParse(rowValues["timeCaptured"], out var utcDateTime);
+                                    dbInsertCommand.Parameters[1].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
+                                }
+                                catch (KeyNotFoundException)
+                                {
+                                    timeCapturedFlag = false;
+                                }
+                            }
+                            insertTime.Start();
+                            dbInsertCommand.ExecuteNonQuery();
+                            insertTime.Stop();
 
-                            catch (KeyNotFoundException)
-                            {
-                                statTimeFlag = false;
-                            }
+                            tableNameIndex++;
                         }
-                        if (timeCapturedFlag)
-                        {
-                            try
-                            {
-                                long.TryParse(parsedRow.RowValues["timeCaptured"], out var utcDateTime);
-                                dbInsertCommand.Parameters[1].Value = DateTimeOffset.FromUnixTimeMilliseconds(utcDateTime).UtcDateTime;
-                            }
-                            catch (KeyNotFoundException)
-                            {
-                                timeCapturedFlag = false;
-                            }
-                        }
-                        insertTime.Start();
-                        dbInsertCommand.ExecuteNonQuery();
-                        insertTime.Stop();
-
                     }
 
                     // Log.Information("Parse duration for {Full_File_Path} is {Parse_Duration} with {success_failure} for table {target_table}", stream.Name, parseTime.ElapsedMilliseconds, "-", dbConnection.FileName);

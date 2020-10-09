@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -16,6 +17,9 @@ namespace XCM2SQLite
     {
 
         public XmlReader xmlReader { get; set; }
+        public List<string> tableNameList = new List<string>();
+        public List<string> id = new List<string>();
+        bool childFlag = true;
 
         [DefaultValue(1)]
         public int[] TimestampIndex { get; set; }
@@ -52,42 +56,29 @@ namespace XCM2SQLite
         {
             //var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             _defaultResult = new XCMParseResult();
-
             //flag = flag ? true : SetFileValues(_defaultResult, filePath, fileName);
-            var rowParam = new Dictionary<string, string>();
-            while (xmlReader.NodeType == XmlNodeType.EndElement)
+            XElement xElement;
+            id = new List<string>();
+            try
             {
-                xmlReader.Read();
+                xElement = (XElement)XNode.ReadFrom(xmlReader);
             }
-            while (xmlReader.MoveToNextAttribute())
-            {
-                string headerValue = xmlReader.Name.ToString();
-                string dataValue = xmlReader.Value;
-                rowParam.Add(headerValue, dataValue);
-            }
-            XElement xAttributes;
-            xmlReader.ReadToFollowing("attributes");
-            if(xmlReader.ReadState != ReadState.EndOfFile)
-            {
-               xAttributes = (XElement)XNode.ReadFrom(xmlReader);
-                xAttributes.Ancestors();
-            }
-            else
+            catch (InvalidOperationException)
             {
                 return null;
             }
-            
 
-            foreach (var element in xAttributes.Elements())
+            var dict = new Dictionary<string, string>();
+            var rowParam = new List<Dictionary<string, string>>();
+            tableNameList = new List<string>();
+            childFlag = true;
+            if (childFlag)
             {
-                string headerValue = element.Name.ToString();
-                string dataValue = element.Value;
-                rowParam.Add(headerValue, dataValue);
-                
-            }
-        
+                rowParam = ExtractChildren(xElement, xElement.Name.LocalName, tableNameList);
 
-        _defaultResult.RowValues = rowParam;
+            }
+
+            _defaultResult.RowValues = rowParam;
 
             //var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             //_defaultResult.logValues = new LogValues(input.Name,DateTime.Now.ToString(), start, stop, stop - start, _defaultResult.Data.Count, 0, 0, "");
@@ -97,59 +88,118 @@ namespace XCM2SQLite
 
 
         }
-}
-static class FileValues
-{
-    public static string Timestamp { get; set; }
-    public static string Ne { get; set; }
-    public static string TableName { get; set; }
-
-    public static string FilePath { get; set; }
-    public static void SetFileValues(XCMParser parser, string filePath, string fileName)
-    {
-
-        try
+        private List<Dictionary<string, string>> ExtractChildren(XElement xElement, string parentName, List<string> tableNameList)
         {
-            FilePath = filePath;
-            string fileNameWoutExt = Path.GetFileNameWithoutExtension(filePath);
-            string fileNameWoutAllExt = Path.GetFileNameWithoutExtension(fileNameWoutExt);
-            var values = Regex.Matches(fileNameWoutAllExt, @"[^_\s][^_]*[^_\s]*");
-            // string date = values[parser.DateIndex - 1].Value + "_" + values[parser.DateIndex].Value;
-            // string dateBackup = values[parser.DateIndex].Value;
-            string date = string.Join("_", values.Where((item, index) => parser.TimestampIndex.Contains(index)));
-            //foreach (var e in parser.DateIndex) { date = string.Append(values[e]); };
+            var rowParam = new List<Dictionary<string, string>>();
+            var dict = new Dictionary<string, string>();
+            string tableName = GenerateTableName(parentName);
+            tableNameList.Add(tableName);
 
-            TableName = string.Join("_", values.Where((item, index) => parser.TypeIndex.Contains(index)));
-            Ne = string.Join("_", values.Where((item, index) => parser.NeIndex.Contains(index)))
-                                     .Replace("-", "_").ToLowerInvariant();
-            string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmm", "yyyyMMdd_HHmmss", "yyyyMMddHHmmss" };
-            //_defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
-            ParseDate(date, formatStrings, fileName);
+            id.Add(xElement.FirstAttribute.Value.ToString());
+            int idIndex = 0;
+            var separateNames = tableName.Split("_");
+            if (separateNames.Length > 1 )
+            {
+                foreach (var separateName in separateNames)
+                {
+                    if (tableName.Contains(separateName) && separateName != xElement.Name.LocalName)
+                    {
+                        dict.Add(separateName + "_id", id[idIndex]);
+                    }
+                    idIndex++;
+                }
+            }
+            foreach (var attributeas in xElement.Attributes())
+            {
+                string headerValue = attributeas.Name.LocalName;
+                string dataValue = attributeas.Value;
+                dict.Add(headerValue, dataValue);
+            }
+            foreach (XElement child in xElement.Nodes())
+            {
+                if (child.Name == "attributes")
+                {
+                    var attributes = child.Nodes();
+                    foreach (XElement attribute in attributes)
+                    {
+                        string headerValue = attribute.Name.LocalName;
+                        string dataValue = attribute.Value;
+                        dict.Add(headerValue, dataValue);
+
+                    }
+                    rowParam.Add(dict);
+                }
+                else
+                {
+                    rowParam.AddRange(ExtractChildren(child, GenerateTableName(parentName, child.Name.ToString()), tableNameList));
+
+                }
+
+            }
+            childFlag = false;
+            return rowParam;
         }
-        catch (ArgumentOutOfRangeException a)
+        private static string GenerateTableName(string parentName, string elementName)
         {
-            Console.WriteLine(a.Message);
+            return parentName + "_" + elementName;
         }
-        catch (FormatException e)
+        private static string GenerateTableName(string parentName)
         {
-            //Log.Error(e, "File {File_Name} couldn't be parsed by any DateTime formats.", fileName);
-            Console.WriteLine(e.Message);
+            return parentName;
         }
     }
-    private static void ParseDate(string date, string[] formats, string fileName)
+    static class FileValues
     {
-        if (DateTime.TryParseExact(date, formats, null, DateTimeStyles.None, out DateTime v))
+        public static string Timestamp { get; set; }
+        public static string Ne { get; set; }
+        public static string TableName { get; set; }
+
+        public static string FilePath { get; set; }
+        public static void SetFileValues(XCMParser parser, string filePath, string fileName)
         {
-            Timestamp = v.ToString("u");
+
+            try
+            {
+                FilePath = filePath;
+                string fileNameWoutExt = Path.GetFileNameWithoutExtension(filePath);
+                string fileNameWoutAllExt = Path.GetFileNameWithoutExtension(fileNameWoutExt);
+                var values = Regex.Matches(fileNameWoutAllExt, @"[^_\s][^_]*[^_\s]*");
+                // string date = values[parser.DateIndex - 1].Value + "_" + values[parser.DateIndex].Value;
+                // string dateBackup = values[parser.DateIndex].Value;
+                string date = string.Join("_", values.Where((item, index) => parser.TimestampIndex.Contains(index)));
+                //foreach (var e in parser.DateIndex) { date = string.Append(values[e]); };
+
+                TableName = string.Join("_", values.Where((item, index) => parser.TypeIndex.Contains(index)));
+                Ne = string.Join("_", values.Where((item, index) => parser.NeIndex.Contains(index)))
+                                         .Replace("-", "_").ToLowerInvariant();
+                string[] formatStrings = { "yyyy-MM-dd_HH'h'mm'm'ss'sZ'", "yyyy-MM-dd_HH-mm-ss", "yyyyMMddHHmmZ", "yyyyMMdd_HHmm", "yyyyMMdd_HHmmss", "yyyyMMddHHmmss" };
+                //_defaultResult.Timestamp = DateTime.ParseExact(Regex.Match(fileName, @"\d{8}_\d{6}").Value, "yyyyMMdd_HHmmss", null).ToString("s");
+                ParseDate(date, formatStrings, fileName);
+            }
+            catch (ArgumentOutOfRangeException a)
+            {
+                Console.WriteLine(a.Message);
+            }
+            catch (FormatException e)
+            {
+                //Log.Error(e, "File {File_Name} couldn't be parsed by any DateTime formats.", fileName);
+                Console.WriteLine(e.Message);
+            }
         }
-        else if (DateTime.TryParseExact(date = Regex.Replace(date, "[^.0-9_]", ""), formats, null, DateTimeStyles.None, out v))
+        private static void ParseDate(string date, string[] formats, string fileName)
         {
-            Timestamp = v.ToString("u");
-        }
-        else
-        {
-            throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
+            if (DateTime.TryParseExact(date, formats, null, DateTimeStyles.None, out DateTime v))
+            {
+                Timestamp = v.ToString("u");
+            }
+            else if (DateTime.TryParseExact(date = Regex.Replace(date, "[^.0-9_]", ""), formats, null, DateTimeStyles.None, out v))
+            {
+                Timestamp = v.ToString("u");
+            }
+            else
+            {
+                throw new FormatException("File " + fileName + " couldn't be parsed by any DateTime formats.");
+            }
         }
     }
-}
 }

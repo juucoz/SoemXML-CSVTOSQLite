@@ -5,13 +5,13 @@ namespace XCM2SQLite
     internal class XCMParseResult
 
     {
-        public Dictionary<string, string> RowValues { get; set; }
+        public List<Dictionary<string, string>> RowValues { get; set; }
 
 
 
         public XCMParseResult()
         {
-            RowValues = new Dictionary<string, string>();
+            RowValues = new List<Dictionary<string, string>>();
         }
 
     }
