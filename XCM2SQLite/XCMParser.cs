@@ -18,7 +18,7 @@ namespace XCM2SQLite
 
         public XmlReader xmlReader { get; set; }
         public List<string> tableNameList = new List<string>();
-        public List<string> id = new List<string>();
+        Dictionary<string, string> idCache = new Dictionary<string, string>();
         bool childFlag = true;
 
         [DefaultValue(1)]
@@ -53,12 +53,12 @@ namespace XCM2SQLite
             xmlReader = XmlReader.Create(input, xmlReaderSettings);
         }
         public XCMParseResult Parse<T>(T input)
-        {
+        {   
             //var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
             _defaultResult = new XCMParseResult();
             //flag = flag ? true : SetFileValues(_defaultResult, filePath, fileName);
             XElement xElement;
-            id = new List<string>();
+            idCache = new Dictionary<string, string>();
             try
             {
                 xElement = (XElement)XNode.ReadFrom(xmlReader);
@@ -67,9 +67,8 @@ namespace XCM2SQLite
             {
                 return null;
             }
-
             var dict = new Dictionary<string, string>();
-            var rowParam = new List<Dictionary<string, string>>();
+            var rowParam = new Dictionary<string,List<Dictionary<string, string>>>();
             tableNameList = new List<string>();
             childFlag = true;
             if (childFlag)
@@ -88,23 +87,33 @@ namespace XCM2SQLite
 
 
         }
-        private List<Dictionary<string, string>> ExtractChildren(XElement xElement, string parentName, List<string> tableNameList)
+        private Dictionary<string,List<Dictionary<string, string>>> ExtractChildren(XElement xElement, string parentName, List<string> tableNameList)
         {
-            var rowParam = new List<Dictionary<string, string>>();
+            var rowParam = new Dictionary<string,List<Dictionary<string, string>>>();
+            var listDict = new List<Dictionary<string, string>>();
             var dict = new Dictionary<string, string>();
+            
             string tableName = GenerateTableName(parentName);
             tableNameList.Add(tableName);
-
-            id.Add(xElement.FirstAttribute.Value.ToString());
+            
+            //id.Add(xElement.FirstAttribute.Value.ToString());
             int idIndex = 0;
-            var separateNames = tableName.Split("_");
-            if (separateNames.Length > 1 )
+            var parentNames = tableNameList.TakeLast(1).ToString().Split(",");
+            var separateNames = tableName.Split(",");
+            if (separateNames.Length >= 1 )
             {
                 foreach (var separateName in separateNames)
                 {
+                    if (!idCache.ContainsKey(separateName))
+                    {
+                        idCache.Add(separateName, xElement.FirstAttribute.Value);
+                    }
+                }
+                foreach (var separateName in separateNames)
+                {   
                     if (tableName.Contains(separateName) && separateName != xElement.Name.LocalName)
                     {
-                        dict.Add(separateName + "_id", id[idIndex]);
+                        dict.Add(separateName + "_id", idCache[separateName]);
                     }
                     idIndex++;
                 }
@@ -114,9 +123,14 @@ namespace XCM2SQLite
                 string headerValue = attributeas.Name.LocalName;
                 string dataValue = attributeas.Value;
                 dict.Add(headerValue, dataValue);
+                
             }
             foreach (XElement child in xElement.Nodes())
             {
+                if(child.Name == "Application4G")
+                {
+                    Console.WriteLine("hop");
+                }
                 if (child.Name == "attributes")
                 {
                     var attributes = child.Nodes();
@@ -125,13 +139,28 @@ namespace XCM2SQLite
                         string headerValue = attribute.Name.LocalName;
                         string dataValue = attribute.Value;
                         dict.Add(headerValue, dataValue);
-
+                        
                     }
-                    rowParam.Add(dict);
+                    listDict.Add(dict);
+                    rowParam.Add(tableName,listDict);
                 }
                 else
                 {
-                    rowParam.AddRange(ExtractChildren(child, GenerateTableName(parentName, child.Name.ToString()), tableNameList));
+                   // rowParam.AddRange(ExtractChildren(child, GenerateTableName(parentName, child.Name.ToString()), tableNameList));
+                    foreach(var asd in ExtractChildren(child, GenerateTableName(parentName, child.Name.ToString()), tableNameList))
+                    {
+                        if (rowParam.ContainsKey(asd.Key))
+                        {
+                            foreach (var listElem in asd.Value)
+                            {
+                                rowParam[asd.Key].Add(listElem);
+                            }
+                        }
+                        else
+                        {
+                            rowParam.Add(asd.Key, asd.Value);
+                        }
+                    }
 
                 }
 
@@ -141,7 +170,7 @@ namespace XCM2SQLite
         }
         private static string GenerateTableName(string parentName, string elementName)
         {
-            return parentName + "_" + elementName;
+            return parentName + "," + elementName;
         }
         private static string GenerateTableName(string parentName)
         {
