@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
+using System.IO;
 using System.Linq;
 
 namespace PiTnProcessor
@@ -27,12 +28,25 @@ namespace PiTnProcessor
                 //FailIfMissing = false,
                 //ReadOnly = false
             };
-
-            using (SQLiteConnection dbConnection = new SQLiteConnection(dbConnectionStringBuilder.ConnectionString))
+            var fileCheckerdbConnectionStringBuilder = new SQLiteConnectionStringBuilder
             {
-                dbConnection.Open(); 
-                FileValues.CallConverter(Program.opts, dbConnection);
-                return GetDBValues(dbConnection);
+                DataSource = Path.GetFileNameWithoutExtension(dbFilePath) + ".files" + ".sqlite",
+                Pooling = false,
+                //DefaultTimeout = 5000,
+                //PageSize = 65536,
+                //CacheSize = 16777216,
+                //FailIfMissing = false,
+                //ReadOnly = false
+            };
+            using (SQLiteConnection fileCheckerdbConnection = new SQLiteConnection(fileCheckerdbConnectionStringBuilder.ConnectionString))
+            {
+                using (SQLiteConnection dbConnection = new SQLiteConnection(dbConnectionStringBuilder.ConnectionString))
+                {
+                    fileCheckerdbConnection.Open();
+                    dbConnection.Open();
+                    FileValues.CallConverter(Program.opts, dbConnection,fileCheckerdbConnection);
+                    return GetDBValues(dbConnection);
+                }
             }
         }
 

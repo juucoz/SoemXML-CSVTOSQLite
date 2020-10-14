@@ -85,6 +85,13 @@ namespace PiTnProcessor
                     parser.TypeIndex = new int[] { 1 };
                     parser.ReadConfig = "-";
                 }
+                if (filePath.Contains("20200507"))
+                {
+                    parser.DateIndex = new int[] { 0, 1 };
+                    parser.NeIndex = new int[] { 1 };
+                    parser.TypeIndex = new int[] { 1 };
+                    parser.ReadConfig = "-";
+                }
                 if (filePath.Contains("TN_WAN"))
                 {
                     parser.DateIndex = new int[] { 6, 7 };

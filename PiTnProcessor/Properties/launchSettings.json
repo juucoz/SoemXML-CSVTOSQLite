@@ -5,7 +5,7 @@
     },
     "SoemDebug": {
       "commandName": "Project",
-      "commandLineArgs": "-i C:\\Users\\ata.akcay\\Desktop\\ardalan\\*.xml.gz -d ardalan.sqlite"
+      "commandLineArgs": "-i C:\\Users\\ata.akcay\\Desktop\\ardalan\\20200507\\*.xml.gz -d ardalan123.sqlite"
     }
   }
 }

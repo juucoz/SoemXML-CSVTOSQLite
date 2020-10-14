@@ -9,7 +9,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml;
+using System.Security.Cryptography;
 using System.Xml.Linq;
+using System.Text;
 
 namespace PiTnProcessor
 {
@@ -21,6 +23,7 @@ namespace PiTnProcessor
             FileStream stream,
             string filePath,
             SQLiteConnection dbConnection,
+            SQLiteConnection fileCheckerdbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices,
             Dictionary<string, SQLiteCommand> dbInsertCommandCache)
         {
@@ -252,6 +255,7 @@ namespace PiTnProcessor
                 // var lv = new LogValues(stream.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
                 //SQLiteConverter.LogToTable(lv, columnIndices);
             }
+            InsertIntoFileChecker(fileCheckerdbConnection, zippedFlag, filePath);
         }
 
 
@@ -261,6 +265,7 @@ namespace PiTnProcessor
             FileStream stream,
             string filePath,
             SQLiteConnection dbConnection,
+            SQLiteConnection fileCheckerdbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices)
 
         {
@@ -368,7 +373,7 @@ namespace PiTnProcessor
 
 
             }
-
+            InsertIntoFileChecker(fileCheckerdbConnection,zippedFlag,filePath);
             var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
 
             //var lv = new LogValues(input.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
@@ -414,6 +419,16 @@ namespace PiTnProcessor
                         dbCommand.ExecuteNonQuery();
                     }
                 }
+            }
+        }
+        private static void InsertIntoFileChecker(SQLiteConnection fileCheckerdbConnection,bool zippedFlag,string filePath)
+        {
+            var sha_512 = FileValues.GetSHA512(zippedFlag,filePath);
+
+            string command = $"INSERT INTO {FileValues.FileCheckerTableName} VALUES('{FileValues.FilePath}','{FileValues.FileSize}','{sha_512}')";
+            using(SQLiteCommand fileCheckerInsert = new SQLiteCommand(command, fileCheckerdbConnection))
+            {
+                fileCheckerInsert.ExecuteNonQuery();
             }
         }
         private static XmlReaderSettings StartXmlReader()
