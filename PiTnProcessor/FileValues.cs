@@ -225,12 +225,12 @@ namespace PiTnProcessor
             using (checkSQLitecmd)
             {
                 count = Convert.ToInt32(checkSQLitecmd.ExecuteScalar());
-                if (count != 1)
+                if (count != 0)
                 {
-                    return false;
+                    return true;
                 }
                 else
-                    return true;
+                    return false;
             }
 
 

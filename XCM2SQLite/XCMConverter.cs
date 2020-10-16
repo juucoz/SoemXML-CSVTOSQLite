@@ -21,8 +21,10 @@ namespace XCM2SQLite
             FileStream stream,
             string filePath,
             SQLiteConnection dbConnection,
+            SQLiteConnection fileCheckerdbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices,
-            Dictionary<string, SQLiteCommand> dbInsertCommandCache)
+            Dictionary<string, SQLiteCommand> dbInsertCommandCache
+            )
         {
             bool zippedFlag = true;
             var start = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
@@ -192,6 +194,18 @@ namespace XCM2SQLite
                 var stop = StopwatchProxy.Instance.Stopwatch.ElapsedMilliseconds;
                 // var lv = new LogValues(stream.Name, start, stop, parseTime.ElapsedMilliseconds, 0, 0, insertTime.ElapsedMilliseconds, dbConnection.DataSource);
                 //SQLiteConverter.LogToTable(lv, columnIndices);
+            }
+            InsertIntoFileChecker(fileCheckerdbConnection, zippedFlag, filePath);
+        }
+
+        private static void InsertIntoFileChecker(SQLiteConnection fileCheckerdbConnection, bool zippedFlag, string filePath)
+        {
+            var sha_512 = FileValues.GetSHA512(zippedFlag, filePath);
+
+            string command = $"INSERT INTO {FileValues.FileCheckerTableName} VALUES('{FileValues.FilePath}','{FileValues.FileSize}','{sha_512}')";
+            using (SQLiteCommand fileCheckerInsert = new SQLiteCommand(command, fileCheckerdbConnection))
+            {
+                fileCheckerInsert.ExecuteNonQuery();
             }
         }
 
