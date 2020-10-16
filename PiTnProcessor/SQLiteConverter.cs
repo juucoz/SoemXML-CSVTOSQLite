@@ -93,7 +93,7 @@ namespace PiTnProcessor
                                     headElementName = parser.xmlReader.LocalName;
                                 }
                             }
-
+                            
                         }
                         else if (innerReader.LocalName != "children-Set")
                         {

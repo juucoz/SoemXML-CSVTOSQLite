@@ -16,7 +16,9 @@ namespace SNMP2SQLite
             SNMPParser snmpParser,
             GZipStream input,
             string filePath,
+            bool zippedFlag,
             SQLiteConnection dbConnection,
+            SQLiteConnection fileCheckerdbConnection,
             Dictionary<string, Dictionary<string, int>> columnIndices)
 
         {
@@ -78,6 +80,17 @@ namespace SNMP2SQLite
                 dbTransaction.Commit();
 
 
+            }
+            InsertIntoFileChecker(fileCheckerdbConnection, zippedFlag, filePath);
+        }
+        private static void InsertIntoFileChecker(SQLiteConnection fileCheckerdbConnection, bool zippedFlag, string filePath)
+        {
+            var sha_512 = FileValues.GetSHA512(zippedFlag, filePath);
+
+            string command = $"INSERT INTO {FileValues.FileCheckerTableName} VALUES('{FileValues.FilePath}','{FileValues.FileSize}','{sha_512}')";
+            using (SQLiteCommand fileCheckerInsert = new SQLiteCommand(command, fileCheckerdbConnection))
+            {
+                fileCheckerInsert.ExecuteNonQuery();
             }
         }
 
