@@ -14,15 +14,15 @@ namespace SNMP2SQLite
     {
         static void Main(string[] args)
         {
-            var dbConnectionStringBuilder = new SQLiteConnectionStringBuilder
-            {
-                DataSource = args[1],
-                Pooling = false,
-            };
 
-            string dbConnectionString = dbConnectionStringBuilder.ConnectionString;
-            var inputPath = args[0];
-            var dbFilePath = args[1];
+            var opts = Options.GetOptions(args);
+            if (opts is null)
+            {
+                return;
+            }
+
+            var inputPath = opts.InputPath;
+            var dbFilePath = opts.DbFilePath;
             var dbvalues = DBValues.GetDBValues(dbFilePath,inputPath);
 
 

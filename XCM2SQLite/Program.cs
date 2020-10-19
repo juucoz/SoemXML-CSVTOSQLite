@@ -30,21 +30,16 @@ namespace XCM2SQLite
         }
         static void Main(string[] args)
         {
-            var dbConnectionStringBuilder = new SQLiteConnectionStringBuilder
+            var opts = Options.GetOptions(args);
+            if (opts is null)
             {
-                DataSource = args[1],
-                Pooling = false,
-            };
+                return;
+            }
 
-            string dbConnectionString = dbConnectionStringBuilder.ConnectionString;
-            var dbFilePath = args[1];
-            var inputPath = args[0];
+            var inputPath = opts.InputPath;
+            var dbFilePath = opts.DbFilePath;
+            
             var dbValues = DBValues.GetDBValues(dbFilePath, inputPath);
-
-            string sourceFileMask = args[0];
-            string directoryPath = Path.GetDirectoryName(sourceFileMask);
-            string fileMask = Path.GetFileName(sourceFileMask);
-
 
         }
     }

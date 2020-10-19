@@ -64,7 +64,6 @@ namespace PiTnProcessor
 
                     if (parser is CSVParser csvparser)
                     {
-                        bool zippedFlag = true;
                         Console.WriteLine(fileName);
 
                         using (FileStream stream = File.OpenRead(filePath))
@@ -138,7 +137,7 @@ namespace PiTnProcessor
             }
             else
             {
-
+                Console.WriteLine(inputPath); 
                 //Log.Error(new FileNotFoundException(), "This directory {Full_File_Path} does not exist.", Path.Join(options.InputPath, $"{selectedFolder}"));
                 Console.WriteLine("This directory doesn't exist.");
                 return;
@@ -240,15 +239,15 @@ namespace PiTnProcessor
             using (FileStream stream = File.OpenRead(filePath))
             using (GZipStream zippedStream = new GZipStream(stream, CompressionMode.Decompress))
             {
-                SHA512 hop = SHA512.Create();
+                SHA512 sha = SHA512.Create();
                 byte[] sha_512_byte_array;
                 if (zippedFlag)
                 {
-                    sha_512_byte_array = hop.ComputeHash(zippedStream);
+                    sha_512_byte_array = sha.ComputeHash(zippedStream);
                 }
                 else
                 {
-                    sha_512_byte_array = hop.ComputeHash(stream);
+                    sha_512_byte_array = sha.ComputeHash(stream);
                 }
 
                 StringBuilder builder = new StringBuilder();

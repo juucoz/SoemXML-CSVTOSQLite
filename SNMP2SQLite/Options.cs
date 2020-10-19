@@ -1,11 +1,14 @@
 ﻿using CommandLine;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
-namespace PiTnProcessor
+namespace SNMP2SQLite
 {
-    public class Options
+    class Options
     {
+
         [Value(0, MetaName = "inputPath", HelpText = "Path of the file which the contexts of will be saved to SQLite", Required = true)]
         public string InputPath { get; set; }
 
@@ -30,12 +33,11 @@ namespace PiTnProcessor
 
             if (result.Tag == ParserResultType.NotParsed)
             {
-                Console.WriteLine("Usage: pitnprocessor <inputPath\\fileMask> <target.sqlite>");
+                Console.WriteLine("Usage: SNMP2SQLite <inputPath\\fileMask> <target.sqlite>");
                 return null;
             }
             return opts;
         }
 
     }
-
 }

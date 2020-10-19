@@ -206,10 +206,10 @@ namespace SNMP2SQLite
             var zippedFlag = true;
             string inputPaths = Path.GetDirectoryName(inputPath);
             string sourcefileMask = Path.GetFileName(inputPath);
-            if (Directory.Exists(Path.Join(Directory.GetCurrentDirectory())))
+            if (Directory.Exists(Path.Join(inputPaths)))
             {
 
-                foreach (string filePath in Directory.EnumerateFiles(inputPaths, sourcefileMask))
+                foreach (string filePath in Directory.EnumerateFiles(inputPaths, sourcefileMask,SearchOption.AllDirectories))
                 {
                     //var values = new DBValues(dbFilePath);
                     string fileName = Path.GetFileName(filePath);

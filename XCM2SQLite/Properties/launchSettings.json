@@ -2,7 +2,7 @@
   "profiles": {
     "XCM2SQLite": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\ata.akcay\\Desktop\\xcmfile\\*.xcm.gz soem26312312313.sqlite"
+      "commandLineArgs": "inputFile\\*.xcm.gz soem26312312313123123123222.sqlite"
     }
   }
 }

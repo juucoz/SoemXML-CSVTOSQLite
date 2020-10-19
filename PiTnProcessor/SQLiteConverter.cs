@@ -38,7 +38,7 @@ namespace PiTnProcessor
             {
 
                 XmlReaderSettings xmlReaderSettings = SQLiteConverter.StartXmlReader();
-
+                zippedFlag = zippedFlag ? filePath.Contains("xml.gz") : false;
                 using (parser.xmlReader)
                 {
                     string headElementName;

@@ -129,10 +129,6 @@ namespace XCM2SQLite
             }
             foreach (XElement child in xElement.Nodes())
             {
-                if (child.Name == "Application4G")
-                {
-                    Console.WriteLine("hop");
-                }
                 if (child.Name == "attributes")
                 {
                     var attributes = child.Nodes();
